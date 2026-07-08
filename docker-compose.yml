@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: termibus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: termibus
+      POSTGRES_PASSWORD: termibus
+      POSTGRES_DB: termibus
+    ports:
+      - "5432:5432"
+    volumes:
+      - termibus_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U termibus"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  termibus_pg_data:
