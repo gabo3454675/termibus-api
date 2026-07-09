@@ -34,7 +34,7 @@ export class DespachoAuditLog {
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, unknown> | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: 'datetime' })
   creado_en: Date;
 
   @ManyToOne(() => Despacho, { nullable: true })

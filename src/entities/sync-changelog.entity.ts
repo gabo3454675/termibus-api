@@ -22,7 +22,7 @@ export class SyncChangeLog {
   @Column({ type: 'json', nullable: true })
   data: Record<string, unknown> | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: 'datetime' })
   timestamp: Date;
 
   @Column({ type: 'int', default: 1 })
