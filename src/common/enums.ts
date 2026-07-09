@@ -33,3 +33,9 @@ export enum TipoUnidad {
   MICROBUS = 'MICROBUS',
   VAN = 'VAN',
 }
+
+export enum EstadoAbordaje {
+  RESERVADO = 'RESERVADO',
+  ABORDADO = 'ABORDADO',
+  CANCELADO = 'CANCELADO',
+}

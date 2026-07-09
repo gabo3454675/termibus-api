@@ -53,6 +53,6 @@ import type { DispatchStrategy } from './strategies/dispatch-strategy.interface'
       ],
     },
   ],
-  exports: [DespachosService],
+  exports: [DespachosService, DispatchStateMachine],
 })
 export class DespachosModule {}

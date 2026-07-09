@@ -75,6 +75,21 @@ export class EventsGateway implements OnGatewayConnection, OnModuleInit {
     this.eventEmitter.on('conductor.confirmado', (payload: unknown) => {
       this.server.emit('conductor:confirmado', payload);
     });
+
+    // Abordaje de pasajero — actualiza cupos en salidas
+    this.eventEmitter.on(
+      'abordaje.registrado',
+      (payload: {
+        despacho_id: string;
+        terminal_id: string;
+        ocupacion: number;
+        capacidad: number;
+        pasajero: unknown;
+      }) => {
+        this.server.emit('abordaje:registrado', payload);
+        this.server.to(`terminal:${payload.terminal_id}`).emit('abordaje:registrado', payload);
+      },
+    );
   }
 
   handleConnection(client: Socket) {

@@ -15,6 +15,9 @@ import { Terminal } from './entities/terminal.entity';
 import { SyncChangeLog } from './entities/sync-changelog.entity';
 import { Unidad } from './entities/unidad.entity';
 import { Usuario } from './entities/usuario.entity';
+import { Pasajero } from './entities/pasajero.entity';
+import { Abordaje } from './entities/abordaje.entity';
+import { SesionConductor } from './entities/sesion-conductor.entity';
 import { AuthModule } from './auth/auth.module';
 import { LineasModule } from './lineas/lineas.module';
 import { UnidadesModule } from './unidades/unidades.module';
@@ -29,6 +32,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { SeedModule } from './seed/seed.module';
 import { ExternalModule } from './external/external.module';
 import { CircuitBreakerModule } from './circuit-breaker';
+import { PublicModule } from './public/public.module';
 
 const entities = [
   Terminal,
@@ -41,6 +45,9 @@ const entities = [
   DespachoAuditLog,
   SyncChangeLog,
   Usuario,
+  Pasajero,
+  Abordaje,
+  SesionConductor,
 ];
 
 @Module({
@@ -102,6 +109,7 @@ const entities = [
     ExternalModule,
     CircuitBreakerModule,
     SeedModule,
+    PublicModule,
   ],
   providers: [
     {
