@@ -2,6 +2,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,6 +37,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // Global response interceptor — wraps responses in { success, data }
+  app.useGlobalInterceptors(new TransformInterceptor());
+
+  // Global exception filter — standardized error responses
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   app.setGlobalPrefix('api');
 

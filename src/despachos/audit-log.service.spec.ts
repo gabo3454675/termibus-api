@@ -43,6 +43,7 @@ describe('AuditLogService', () => {
         timestamp: new Date(),
         usuarioId: 'u-456',
         razon: 'Asignación manual',
+        organizationId: 'org-1',
       };
 
       const createdEntry = { id: 'audit-1', ...payload };
@@ -67,6 +68,7 @@ describe('AuditLogService', () => {
         estadoAnterior: null,
         estadoNuevo: 'EN_COLA',
         timestamp: new Date(),
+        organizationId: 'org-1',
       };
 
       mockRepo.create.mockReturnValue({});
@@ -89,6 +91,7 @@ describe('AuditLogService', () => {
         estadoAnterior: 'EN_COLA',
         estadoNuevo: 'ASIGNADO',
         timestamp: new Date(),
+        organizationId: 'org-1',
       };
 
       mockRepo.create.mockReturnValue({});

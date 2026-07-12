@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -13,6 +15,8 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalInterceptors(new TransformInterceptor());
+    app.useGlobalFilters(new HttpExceptionFilter());
     await app.init();
   });
 
@@ -20,7 +24,7 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect('Hello World!');
+      .expect({ success: true, data: 'Hello World!' });
   });
 
   afterEach(async () => {

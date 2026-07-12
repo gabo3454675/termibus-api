@@ -26,17 +26,19 @@ export class AndenesController {
   private readonly crud: CrudService<Anden>;
 
   constructor(
-    @InjectRepository(Anden) repo: Repository<Anden>,
+    @InjectRepository(Anden) private readonly repo: Repository<Anden>,
     @InjectRepository(Despacho) private readonly despachoRepo: Repository<Despacho>,
   ) {
-    this.crud = new CrudService(repo);
+    this.crud = new CrudService(this.repo);
   }
 
   @Get()
   @Roles(Rol.ADMIN, Rol.DESPACHADOR)
-  async findAll(@CurrentUser() user: { terminal_id: string }) {
-    const andenes = await this.crud.findAll();
-    const terminalAndenes = andenes.filter((a) => a.terminal_id === user.terminal_id);
+  async findAll(@CurrentUser() user: { terminal_id: string; orgId: string }) {
+    const andenes = await this.repo.find({
+      where: { terminal_id: user.terminal_id, organization_id: user.orgId } as never,
+      order: { numero: 'ASC' } as never,
+    });
 
     const activos = await this.despachoRepo.find({
       where: [
@@ -46,7 +48,7 @@ export class AndenesController {
       relations: DESPACHO_RELATIONS,
     });
 
-    return terminalAndenes
+    return andenes
       .sort((a, b) => a.numero - b.numero)
       .map((anden) => {
         const despacho = activos.find((d) => d.anden_id === anden.id);

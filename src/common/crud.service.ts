@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ObjectLiteral } from 'typeorm';
+import { Repository, ObjectLiteral, FindOptionsWhere } from 'typeorm';
 
 @Injectable()
 export class CrudService<T extends ObjectLiteral> {
   constructor(private readonly repo: Repository<T>) {}
 
-  findAll() {
-    return this.repo.find({ order: { id: 'ASC' } as never });
+  findAll(where?: FindOptionsWhere<T>) {
+    return this.repo.find({ where: where as never, order: { id: 'ASC' } as never });
   }
 
   findOne(id: string) {

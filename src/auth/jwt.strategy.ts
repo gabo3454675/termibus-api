@@ -3,15 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService } from './auth.service';
-
-export interface JwtPayload {
-  sub: string;
-  username: string;
-  rol: string;
-  terminal_id: string | null;
-  conductor_id: string | null;
-  token_version: number;
-}
+import { AuthUser, JwtPayload, buildAuthContext } from './auth.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -26,20 +18,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload): Promise<AuthUser | null> {
     const user = await this.authService.validateUser(payload.sub);
     if (!user) return null;
+    if (user.token_version !== payload.tokenVersion) return null;
 
-    // Verificar token_version para permitir revocación de tokens
-    if (user.token_version !== payload.token_version) return null;
+    const membership = await this.authService.getMembership(
+      user.id,
+      payload.orgId,
+    );
+    if (!membership) return null;
 
-    return {
-      id: user.id,
-      username: user.username,
-      rol: user.rol,
-      nombre_completo: user.nombre_completo,
-      terminal_id: user.terminal_id,
-      conductor_id: user.conductor_id,
-    };
+    const assignment = await this.authService.getTerminalAssignment(
+      membership.id,
+    );
+
+    return buildAuthContext(user, membership, assignment);
   }
 }

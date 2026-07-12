@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Post,
+  Query,
   UnauthorizedException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -28,8 +29,8 @@ export class PublicController {
 
   @Get('salidas')
   @SkipThrottle()
-  getSalidas() {
-    return this.publicService.getSalidas();
+  getSalidas(@Query('terminal') terminalId?: string) {
+    return this.publicService.getSalidas(terminalId);
   }
 
   @Post('pasajeros/registro')

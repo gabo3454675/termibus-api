@@ -39,6 +39,7 @@ describe('SyncService', () => {
   describe('registerChange', () => {
     it('debe crear y guardar una entrada en el changelog', async () => {
       const params = {
+        organizationId: 'org-1',
         entity: 'despacho',
         entityId: '123',
         action: 'CREATE' as const,
@@ -54,12 +55,13 @@ describe('SyncService', () => {
       const result = await service.registerChange(params);
 
       expect(mockRepo.create).toHaveBeenCalledWith({
+        organization_id: 'org-1',
         entity: 'despacho',
         entityId: '123',
         action: 'CREATE',
         data: { estado: 'EN_COLA' },
         userId: 'user-1',
-        terminalId: 'term-1',
+        terminal_id: 'term-1',
       });
       expect(mockRepo.save).toHaveBeenCalledWith(createdEntry);
       expect(result).toEqual(createdEntry);
@@ -67,6 +69,7 @@ describe('SyncService', () => {
 
     it('debe usar null cuando no se proveen userId/terminalId', async () => {
       const params = {
+        organizationId: 'org-1',
         entity: 'unidad',
         entityId: '456',
         action: 'UPDATE' as const,
@@ -85,12 +88,13 @@ describe('SyncService', () => {
       const result = await service.registerChange(params);
 
       expect(mockRepo.create).toHaveBeenCalledWith({
+        organization_id: 'org-1',
         entity: 'unidad',
         entityId: '456',
         action: 'UPDATE',
         data: null,
         userId: null,
-        terminalId: null,
+        terminal_id: null,
       });
       expect(result).toEqual(createdEntry);
     });
@@ -110,7 +114,7 @@ describe('SyncService', () => {
 
       mockRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      const result = await service.getChangesSince('2026-07-07T00:00:00Z');
+      const result = await service.getChangesSince('2026-07-07T00:00:00Z', 'org-1');
 
       expect(mockRepo.createQueryBuilder).toHaveBeenCalledWith('cl');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
@@ -134,7 +138,7 @@ describe('SyncService', () => {
 
       mockRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      await service.getChangesSince('2026-07-07T00:00:00Z', {
+      await service.getChangesSince('2026-07-07T00:00:00Z', 'org-1', {
         entity: 'despacho',
       });
 
@@ -155,7 +159,7 @@ describe('SyncService', () => {
 
       mockRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      await service.getChangesSince('2026-07-07T00:00:00Z', { limit: 50 });
+      await service.getChangesSince('2026-07-07T00:00:00Z', 'org-1', { limit: 50 });
 
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(50);
     });

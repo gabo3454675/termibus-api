@@ -19,6 +19,7 @@ export class AuditLogService {
   async handleEstadoCambiado(payload: DespachoEstadoCambiadoPayload): Promise<void> {
     try {
       const entry = this.auditRepo.create({
+        organization_id: payload.organizationId,
         despacho_id: payload.despachoId,
         estado_anterior: payload.estadoAnterior,
         estado_nuevo: payload.estadoNuevo,

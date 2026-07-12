@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class RegistroPasajeroDto {
   @IsString()
@@ -21,4 +21,9 @@ export class RegistroPasajeroDto {
   @IsString()
   @MaxLength(500_000)
   foto_url?: string;
+
+  /** Organización a la que pertenece el pasajero — opcional para retrocompatibilidad */
+  @IsOptional()
+  @IsUUID()
+  organizationId?: string;
 }

@@ -13,10 +13,8 @@ export class SyncService {
     private readonly changelogRepo: Repository<SyncChangeLog>,
   ) {}
 
-  /**
-   * Registra un cambio en el ChangeLog.
-   */
   async registerChange(params: {
+    organizationId: string;
     entity: string;
     entityId: string;
     action: 'CREATE' | 'UPDATE' | 'DELETE';
@@ -25,32 +23,38 @@ export class SyncService {
     terminalId?: string;
   }): Promise<SyncChangeLog> {
     const entry = this.changelogRepo.create({
+      organization_id: params.organizationId,
       entity: params.entity,
       entityId: params.entityId,
       action: params.action,
       data: params.data ?? null,
       userId: params.userId ?? null,
-      terminalId: params.terminalId ?? null,
+      terminal_id: params.terminalId ?? null,
     });
     return this.changelogRepo.save(entry);
   }
 
-  /**
-   * Obtiene cambios desde un timestamp (para pull).
-   */
   async getChangesSince(
     since: string,
-    options?: { entity?: string; limit?: number },
+    organizationId: string,
+    options?: { entity?: string; terminalId?: string; limit?: number },
   ): Promise<{ changes: SyncChangeLog[]; serverTimestamp: string }> {
     const sinceDate = new Date(since);
 
     const query = this.changelogRepo
       .createQueryBuilder('cl')
       .where('cl.timestamp >= :since', { since: sinceDate })
+      .andWhere('cl.organization_id = :organizationId', { organizationId })
       .orderBy('cl.timestamp', 'ASC');
 
     if (options?.entity) {
       query.andWhere('cl.entity = :entity', { entity: options.entity });
+    }
+
+    if (options?.terminalId) {
+      query.andWhere('cl.terminal_id = :terminalId', {
+        terminalId: options.terminalId,
+      });
     }
 
     if (options?.limit) {
@@ -64,9 +68,6 @@ export class SyncService {
     };
   }
 
-  /**
-   * Limpia registros más antiguos que la fecha dada.
-   */
   async cleanOlderThan(date: Date): Promise<number> {
     const result = await this.changelogRepo.delete({
       timestamp: LessThan(date),
@@ -74,10 +75,6 @@ export class SyncService {
     return result.affected ?? 0;
   }
 
-  /**
-   * Limpieza automática semanal: elimina registros más antiguos que 7 días.
-   * Se ejecuta cada domingo a las 3:00 AM.
-   */
   @Cron(CronExpression.EVERY_WEEK)
   async autoClean() {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

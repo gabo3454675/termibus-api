@@ -5,19 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Anden } from './entities/anden.entity';
-import { Conductor } from './entities/conductor.entity';
-import { Despacho } from './entities/despacho.entity';
-import { DespachoAuditLog } from './entities/despacho-audit-log.entity';
-import { Destino } from './entities/destino.entity';
-import { LineaTransporte } from './entities/linea-transporte.entity';
-import { Terminal } from './entities/terminal.entity';
-import { SyncChangeLog } from './entities/sync-changelog.entity';
-import { Unidad } from './entities/unidad.entity';
-import { Usuario } from './entities/usuario.entity';
-import { Pasajero } from './entities/pasajero.entity';
-import { Abordaje } from './entities/abordaje.entity';
-import { SesionConductor } from './entities/sesion-conductor.entity';
+import { entities } from './entities';
 import { AuthModule } from './auth/auth.module';
 import { LineasModule } from './lineas/lineas.module';
 import { UnidadesModule } from './unidades/unidades.module';
@@ -33,22 +21,7 @@ import { SeedModule } from './seed/seed.module';
 import { ExternalModule } from './external/external.module';
 import { CircuitBreakerModule } from './circuit-breaker';
 import { PublicModule } from './public/public.module';
-
-const entities = [
-  Terminal,
-  LineaTransporte,
-  Unidad,
-  Conductor,
-  Anden,
-  Destino,
-  Despacho,
-  DespachoAuditLog,
-  SyncChangeLog,
-  Usuario,
-  Pasajero,
-  Abordaje,
-  SesionConductor,
-];
+import { RepositoriesModule } from './repositories/repositories.module';
 
 @Module({
   imports: [
@@ -60,13 +33,11 @@ const entities = [
       verboseMemoryLeak: true,
     }),
 
-    // Rate limiting - 120 requests/minuto global
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 120,
     }]),
 
-    // Cron jobs (limpieza semanal de sync changelog)
     ScheduleModule.forRoot(),
 
     TypeOrmModule.forRootAsync({
@@ -77,7 +48,7 @@ const entities = [
         if (useSqlite) {
           return {
             type: 'better-sqlite3' as const,
-            database: config.get<string>('SQLITE_PATH') ?? 'termibus.sqlite',
+            database: config.get<string>('SQLITE_PATH') ?? 'db.sqlite',
             entities,
             synchronize: true,
           };
@@ -110,6 +81,7 @@ const entities = [
     CircuitBreakerModule,
     SeedModule,
     PublicModule,
+    RepositoriesModule,
   ],
   providers: [
     {

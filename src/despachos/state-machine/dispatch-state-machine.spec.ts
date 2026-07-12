@@ -30,6 +30,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_COLA → ASIGNADO via "asignar"', () => {
       const result = machine.transition(EstadoDespacho.EN_COLA, 'asignar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.ASIGNADO);
     });
@@ -37,6 +38,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_COLA → CANCELADO via "cancelar"', () => {
       const result = machine.transition(EstadoDespacho.EN_COLA, 'cancelar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.CANCELADO);
     });
@@ -44,6 +46,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_COLA → RETRASADO via "retrasar"', () => {
       const result = machine.transition(EstadoDespacho.EN_COLA, 'retrasar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.RETRASADO);
     });
@@ -51,6 +54,7 @@ describe('DispatchStateMachine', () => {
     it('should allow ASIGNADO → EN_ANDEN via "confirmar"', () => {
       const result = machine.transition(EstadoDespacho.ASIGNADO, 'confirmar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.EN_ANDEN);
     });
@@ -58,6 +62,7 @@ describe('DispatchStateMachine', () => {
     it('should allow ASIGNADO → DESPACHADO via "despachar"', () => {
       const result = machine.transition(EstadoDespacho.ASIGNADO, 'despachar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.DESPACHADO);
     });
@@ -65,6 +70,7 @@ describe('DispatchStateMachine', () => {
     it('should allow ASIGNADO → CANCELADO via "cancelar"', () => {
       const result = machine.transition(EstadoDespacho.ASIGNADO, 'cancelar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.CANCELADO);
     });
@@ -72,6 +78,7 @@ describe('DispatchStateMachine', () => {
     it('should allow ASIGNADO → RETRASADO via "retrasar"', () => {
       const result = machine.transition(EstadoDespacho.ASIGNADO, 'retrasar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.RETRASADO);
     });
@@ -79,6 +86,7 @@ describe('DispatchStateMachine', () => {
     it('should allow ASIGNADO → ASIGNADO via "reasignar" (self-transition)', () => {
       const result = machine.transition(EstadoDespacho.ASIGNADO, 'reasignar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.ASIGNADO);
     });
@@ -86,6 +94,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_ANDEN → DESPACHADO via "despachar"', () => {
       const result = machine.transition(EstadoDespacho.EN_ANDEN, 'despachar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.DESPACHADO);
     });
@@ -93,6 +102,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_ANDEN → CANCELADO via "cancelar"', () => {
       const result = machine.transition(EstadoDespacho.EN_ANDEN, 'cancelar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.CANCELADO);
     });
@@ -100,6 +110,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_ANDEN → RETRASADO via "retrasar"', () => {
       const result = machine.transition(EstadoDespacho.EN_ANDEN, 'retrasar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.RETRASADO);
     });
@@ -107,6 +118,7 @@ describe('DispatchStateMachine', () => {
     it('should allow DESPACHADO → EN_RUTA via "salida_ruta"', () => {
       const result = machine.transition(EstadoDespacho.DESPACHADO, 'salida_ruta', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.EN_RUTA);
     });
@@ -114,6 +126,7 @@ describe('DispatchStateMachine', () => {
     it('should allow DESPACHADO → COMPLETADO via "completar"', () => {
       const result = machine.transition(EstadoDespacho.DESPACHADO, 'completar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.COMPLETADO);
     });
@@ -121,6 +134,7 @@ describe('DispatchStateMachine', () => {
     it('should allow EN_RUTA → COMPLETADO via "completar"', () => {
       const result = machine.transition(EstadoDespacho.EN_RUTA, 'completar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.COMPLETADO);
     });
@@ -128,6 +142,7 @@ describe('DispatchStateMachine', () => {
     it('should allow RETRASADO → EN_COLA via "reasignar"', () => {
       const result = machine.transition(EstadoDespacho.RETRASADO, 'reasignar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.EN_COLA);
     });
@@ -135,29 +150,31 @@ describe('DispatchStateMachine', () => {
     it('should allow RETRASADO → CANCELADO via "cancelar"', () => {
       const result = machine.transition(EstadoDespacho.RETRASADO, 'cancelar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
       });
       expect(result).toBe(EstadoDespacho.CANCELADO);
     });
 
     it('should throw for terminal states', () => {
       expect(() =>
-        machine.transition(EstadoDespacho.CANCELADO, 'cancelar', { despachoId: 'd1' }),
+        machine.transition(EstadoDespacho.CANCELADO, 'cancelar', { despachoId: 'd1', organizationId: 'org-1' }),
       ).toThrow(BadRequestException);
 
       expect(() =>
-        machine.transition(EstadoDespacho.COMPLETADO, 'completar', { despachoId: 'd1' }),
+        machine.transition(EstadoDespacho.COMPLETADO, 'completar', { despachoId: 'd1', organizationId: 'org-1' }),
       ).toThrow(BadRequestException);
     });
 
     it('should throw for invalid transition', () => {
       expect(() =>
-        machine.transition(EstadoDespacho.EN_COLA, 'completar', { despachoId: 'd1' }),
+        machine.transition(EstadoDespacho.EN_COLA, 'completar', { despachoId: 'd1', organizationId: 'org-1' }),
       ).toThrow(BadRequestException);
     });
 
     it('should emit ESTADO_CAMBIADO event on valid transition', () => {
       machine.transition(EstadoDespacho.EN_COLA, 'asignar', {
         despachoId: 'd1',
+        organizationId: 'org-1',
         usuarioId: 'u1',
         razon: 'test',
       });
@@ -176,7 +193,7 @@ describe('DispatchStateMachine', () => {
 
     it('should include timestamp in the event payload', () => {
       const before = Date.now();
-      machine.transition(EstadoDespacho.EN_COLA, 'asignar', { despachoId: 'd1' });
+      machine.transition(EstadoDespacho.EN_COLA, 'asignar', { despachoId: 'd1', organizationId: 'org-1' });
       const after = Date.now();
 
       const call = (eventEmitter.emit as jest.Mock).mock.calls[0];
@@ -187,7 +204,7 @@ describe('DispatchStateMachine', () => {
 
     it('should not emit event for invalid transition', () => {
       try {
-        machine.transition(EstadoDespacho.CANCELADO, 'asignar', { despachoId: 'd1' });
+        machine.transition(EstadoDespacho.CANCELADO, 'asignar', { despachoId: 'd1', organizationId: 'org-1' });
       } catch {
         // Expected
       }

@@ -3,48 +3,126 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { Usuario } from '../entities/usuario.entity';
+import { OrganizationMember } from '../entities/auth/organization-member.entity';
+import { TerminalAssignment } from '../entities/auth/terminal-assignment.entity';
+import { User } from '../entities/auth/user.entity';
+import { buildAuthContext } from './auth.types';
+
+const DEMO_EMAIL_ALIASES: Record<string, string> = {
+  admin: 'admin@termibus-demo.com',
+  despachador: 'despachador.norte@termibus-demo.com',
+  conductor: 'conductor@termibus-demo.com',
+};
 
 @Injectable()
 export class AuthService {
-  constructor(
-    @InjectRepository(Usuario)
-    private readonly usuarioRepo: Repository<Usuario>,
-    private readonly jwtService: JwtService,
-  ) {}
+  private readonly dummyHash: string;
 
-  async login(username: string, password: string) {
-    const user = await this.usuarioRepo.findOne({
-      where: { username: username.toLowerCase(), activo: true },
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(OrganizationMember)
+    private readonly memberRepo: Repository<OrganizationMember>,
+    @InjectRepository(TerminalAssignment)
+    private readonly assignmentRepo: Repository<TerminalAssignment>,
+    private readonly jwtService: JwtService,
+  ) {
+    this.dummyHash = bcrypt.hashSync('dummy-padding-hash', 10);
+  }
+
+  private resolveEmail(identifier: string): string {
+    const normalized = identifier.trim().toLowerCase();
+    return DEMO_EMAIL_ALIASES[normalized] ?? normalized;
+  }
+
+  async login(identifier: string, password: string, organizationId?: string) {
+    const email = this.resolveEmail(identifier);
+    const user = await this.userRepo.findOne({
+      where: { email, activo: true },
     });
-    if (!user) throw new UnauthorizedException('Usuario o contraseña incorrectos');
+
+    if (!user) {
+      // Timing normalization: run compare against dummy hash so timing is identical
+      await bcrypt.compare(password, this.dummyHash);
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) throw new UnauthorizedException('Usuario o contraseña incorrectos');
+    if (!valid) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const memberships = await this.memberRepo.find({
+      where: { user_id: user.id, activo: true },
+      relations: { organization: true },
+    });
+    if (!memberships.length) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const membership = organizationId
+      ? memberships.find((m) => m.organization_id === organizationId)
+      : memberships[0];
+    if (!membership) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const assignment = await this.assignmentRepo.findOne({
+      where: {
+        organization_member_id: membership.id,
+        activo: true,
+      },
+    });
+
+    const authUser = buildAuthContext(user, membership, assignment);
+
+    await this.userRepo.update(user.id, { ultimo_login: new Date() });
 
     const payload = {
-      sub: user.id,
-      username: user.username,
-      rol: user.rol,
-      terminal_id: user.terminal_id,
-      conductor_id: user.conductor_id,
-      token_version: user.token_version,
+      sub: authUser.sub,
+      email: authUser.email,
+      orgId: authUser.orgId,
+      orgRole: authUser.orgRole,
+      terminalId: authUser.terminalId,
+      terminalRole: authUser.terminalRole,
+      conductorId: authUser.conductorId,
+      tokenVersion: authUser.tokenVersion,
+      rol: authUser.rol,
+      username: authUser.username,
+      terminal_id: authUser.terminal_id,
+      conductor_id: authUser.conductor_id,
+      token_version: authUser.token_version,
     };
 
     return {
       access_token: this.jwtService.sign(payload),
       usuario: {
-        id: user.id,
-        username: user.username,
-        rol: user.rol,
-        nombre_completo: user.nombre_completo,
-        terminal_id: user.terminal_id,
-        conductor_id: user.conductor_id,
+        id: authUser.id,
+        email: authUser.email,
+        username: authUser.username,
+        rol: authUser.rol,
+        org_id: authUser.orgId,
+        org_role: authUser.orgRole,
+        nombre_completo: authUser.nombre_completo,
+        terminal_id: authUser.terminal_id,
+        conductor_id: authUser.conductor_id,
       },
     };
   }
 
   async validateUser(userId: string) {
-    return this.usuarioRepo.findOne({ where: { id: userId, activo: true } });
+    return this.userRepo.findOne({ where: { id: userId, activo: true } });
+  }
+
+  async getMembership(userId: string, orgId: string) {
+    return this.memberRepo.findOne({
+      where: { user_id: userId, organization_id: orgId, activo: true },
+    });
+  }
+
+  async getTerminalAssignment(memberId: string) {
+    return this.assignmentRepo.findOne({
+      where: { organization_member_id: memberId, activo: true },
+    });
   }
 }

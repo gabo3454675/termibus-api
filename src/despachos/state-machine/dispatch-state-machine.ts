@@ -99,7 +99,12 @@ export class DispatchStateMachine {
   transition(
     estadoActual: EstadoDespacho,
     evento: string,
-    context: { despachoId: string; usuarioId?: string; razon?: string },
+    context: {
+      despachoId: string;
+      organizationId: string;
+      usuarioId?: string;
+      razon?: string;
+    },
   ): EstadoDespacho {
     const estadoSiguiente = TRANSITIONS[estadoActual]?.[evento];
 
@@ -114,6 +119,7 @@ export class DispatchStateMachine {
     // Emitir evento de cambio de estado
     const payload: DespachoEstadoCambiadoPayload = {
       despachoId: context.despachoId,
+      organizationId: context.organizationId,
       estadoAnterior: estadoActual,
       estadoNuevo: estadoSiguiente,
       timestamp: new Date(),

@@ -7,7 +7,10 @@ import {
   UseGuards,
   Logger,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { AuthUser } from '../auth/auth.types';
 import { JwtAuthGuard, RolesGuard, Roles } from '../common/guards';
 import { Rol } from '../common/enums';
 import { SyncService } from './sync.service';
@@ -27,6 +30,7 @@ export class SyncController {
   @Get('changes')
   @Roles(Rol.ADMIN, Rol.DESPACHADOR)
   async getChanges(
+    @Req() req: Request & { user: AuthUser },
     @Query('since') since: string,
     @Query('entity') entity?: string,
     @Query('limit') limit?: string,
@@ -34,8 +38,9 @@ export class SyncController {
     if (!since) {
       return { error: 'Se requiere el parámetro "since" (ISO8601)' };
     }
-    return this.syncService.getChangesSince(since, {
+    return this.syncService.getChangesSince(since, req.user.orgId, {
       entity,
+      terminalId: req.user.terminalId ?? undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
@@ -47,7 +52,10 @@ export class SyncController {
    */
   @Post('push')
   @Roles(Rol.ADMIN, Rol.DESPACHADOR)
-  async pushChanges(@Body(new ValidationPipe({ whitelist: true })) pushDto: SyncPushDto) {
+  async pushChanges(
+    @Req() req: Request & { user: AuthUser },
+    @Body(new ValidationPipe({ whitelist: true })) pushDto: SyncPushDto,
+  ) {
     if (!pushDto.changes?.length) {
       return {
         applied: 0,
@@ -62,10 +70,13 @@ export class SyncController {
     for (const change of pushDto.changes) {
       try {
         await this.syncService.registerChange({
+          organizationId: req.user.orgId,
           entity: change.entity,
           entityId: change.entityId,
           action: change.action as 'CREATE' | 'UPDATE' | 'DELETE',
           data: change.data ?? {},
+          userId: req.user.id,
+          terminalId: req.user.terminalId ?? undefined,
         });
         applied.push(change.entityId);
       } catch (error) {

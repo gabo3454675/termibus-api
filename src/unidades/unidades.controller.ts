@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rol } from '../common/enums';
 import { JwtAuthGuard, Roles, RolesGuard } from '../common/guards';
+import { CurrentUser } from '../common/decorators';
 import { CrudService } from '../common/crud.service';
 import { Unidad } from '../entities/unidad.entity';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
@@ -27,12 +28,12 @@ export class UnidadesController {
     this.crud = new CrudService(repo);
   }
 
-  @Get() findAll() {
-    return this.crud.findAll();
+  @Get() findAll(@CurrentUser() user: { orgId: string }) {
+    return this.crud.findAll({ organization_id: user.orgId } as never);
   }
 
-  @Post() create(@Body() dto: CreateUnidadDto) {
-    return this.crud.create(dto);
+  @Post() create(@Body() dto: CreateUnidadDto, @CurrentUser() user: { orgId: string }) {
+    return this.crud.create({ ...dto, organization_id: user.orgId } as never);
   }
 
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateUnidadDto) {

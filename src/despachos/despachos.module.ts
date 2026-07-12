@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Anden } from '../entities/anden.entity';
 import { Despacho } from '../entities/despacho.entity';
 import { DespachoAuditLog } from '../entities/despacho-audit-log.entity';
+import { Terminal } from '../entities/terminal.entity';
 import { Unidad } from '../entities/unidad.entity';
 import { AuditLogService } from './audit-log.service';
 import { DespachosController } from './despachos.controller';
@@ -16,7 +17,7 @@ import type { DispatchStrategy } from './strategies/dispatch-strategy.interface'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Despacho, Anden, Unidad, DespachoAuditLog]),
+    TypeOrmModule.forFeature([Despacho, Anden, Unidad, DespachoAuditLog, Terminal]),
     ConfigModule,
   ],
   controllers: [DespachosController],

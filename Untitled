@@ -1,0 +1,55 @@
+# TermiBus API — variables de entorno
+# ========================================
+# Copia este archivo como .env y ajusta los valores.
+# Las variables marcadas como REQUERIDAS no tienen valor por defecto.
+# ========================================
+
+# === REQUERIDAS (sin valor por defecto — lanzan error si faltan) ===
+JWT_SECRET=your-256-bit-secret-replace-in-production
+# Clave secreta para firmar tokens JWT. Mínimo 256 bits recomendado.
+# En producción: usar un valor seguro (ej. openssl rand -hex 64)
+
+DB_PASSWORD=your-strong-password
+# Contraseña de PostgreSQL (solo usada cuando USE_SQLITE=false)
+# En producción: usar una contraseña fuerte y rotarla periódicamente
+
+DB_NAME=termibus
+# Nombre de la base de datos PostgreSQL (solo usada cuando USE_SQLITE=false)
+# En producción: nombre descriptivo del entorno (ej. termibus_prod)
+
+# === RED Y SERVIDOR ===
+PORT=4000
+# Puerto donde escucha la API
+
+NODE_ENV=development
+# Entorno: development | production | staging
+# En producción: desactiva synchronize de TypeORM y protege seed
+
+WS_NAMESPACE=/ws
+# Namespace de WebSocket (por defecto /ws)
+
+# === BASE DE DATOS ===
+USE_SQLITE=true
+# true → usa SQLite (desarrollo local, sin Docker)
+# false → usa PostgreSQL (staging/producción)
+
+SQLITE_PATH=termibus.sqlite
+# Ruta del archivo SQLite (solo cuando USE_SQLITE=true)
+
+# PostgreSQL (solo cuando USE_SQLITE=false)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=termibus
+DB_LOGGING=false
+# true → muestra queries SQL en consola
+
+# === CORS (producción) ===
+# CORS_ORIGIN=https://dashboard.termibus.com,https://admin.termibus.com
+# En desarrollo (por defecto):
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173,http://localhost:8080
+# En producción: lanza error si no está configurada (obligatorio)
+
+# === SEED (datos demo) ===
+SEED_ON_START=true
+# true → inserta datos demo al iniciar (solo development, ignorado en production)
+# false → no inserta datos demo

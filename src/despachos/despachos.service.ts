@@ -6,6 +6,7 @@ import { EstadoAnden, EstadoDespacho, EstadoUnidad } from '../common/enums';
 import { DESPACHO_RELATIONS, UNIDAD_LINEA_REL } from '../common/relations';
 import { Anden } from '../entities/anden.entity';
 import { Despacho } from '../entities/despacho.entity';
+import { Terminal } from '../entities/terminal.entity';
 import { Unidad } from '../entities/unidad.entity';
 import { DESPACHO_EVENTS } from '../events/despacho.events';
 import { UNIDAD_EVENTS } from '../events/unidad.events';
@@ -46,6 +47,8 @@ export class DespachosService {
     private readonly andenRepo: Repository<Anden>,
     @InjectRepository(Unidad)
     private readonly unidadRepo: Repository<Unidad>,
+    @InjectRepository(Terminal)
+    private readonly terminalRepo: Repository<Terminal>,
     private readonly eventEmitter: EventEmitter2,
     @Inject('DISPATCH_STRATEGY')
     private readonly dispatchStrategy: DispatchStrategy,
@@ -141,8 +144,14 @@ export class DespachosService {
       throw new UnidadNoDisponibleError(data.unidad_id, unidad.estado);
     }
 
+    const terminal = await this.terminalRepo.findOne({ where: { id: terminalId } });
+    if (!terminal) {
+      throw new RecursoNoEncontradoError('Terminal', terminalId);
+    }
+
     const despacho = this.despachoRepo.create({
       ...data,
+      organization_id: terminal.organization_id,
       terminal_id: terminalId,
       estado: EstadoDespacho.EN_COLA,
       creado_por: creadoPor ?? null,
@@ -167,6 +176,7 @@ export class DespachosService {
 
     this.eventEmitter.emit(DESPACHO_EVENTS.ESTADO_CAMBIADO, {
       despachoId: saved.id,
+      organizationId: terminal.organization_id,
       estadoAnterior: null,
       estadoNuevo: EstadoDespacho.EN_COLA,
       timestamp: new Date(),
@@ -240,6 +250,7 @@ export class DespachosService {
       if (estadoAnterior !== EstadoDespacho.ASIGNADO) {
         this.stateMachine.transition(estadoAnterior, 'asignar', {
           despachoId: full.id,
+          organizationId: full.organization_id,
         });
       }
 
@@ -298,6 +309,7 @@ export class DespachosService {
       // Emitir transición de reasignación (auto-transición ASIGNADO → ASIGNADO)
       this.stateMachine.transition(estadoAnterior, 'reasignar', {
         despachoId: despacho.id,
+        organizationId: despacho.organization_id,
       });
 
       this.eventEmitter.emit(DESPACHO_EVENTS.REASIGNADO, {
@@ -322,6 +334,7 @@ export class DespachosService {
     // Validar y emitir ESTADO_CAMBIADO via state machine
     this.stateMachine.transition(despacho.estado, 'confirmar', {
       despachoId: despacho.id,
+      organizationId: despacho.organization_id,
     });
 
     despacho.estado = EstadoDespacho.EN_ANDEN;
@@ -355,6 +368,7 @@ export class DespachosService {
     // Validar y emitir ESTADO_CAMBIADO via state machine
     this.stateMachine.transition(despacho.estado, 'despachar', {
       despachoId: despacho.id,
+      organizationId: despacho.organization_id,
     });
 
     despacho.estado = EstadoDespacho.DESPACHADO;
@@ -408,6 +422,7 @@ export class DespachosService {
     // Validar y emitir ESTADO_CAMBIADO via state machine
     this.stateMachine.transition(estadoAnterior, 'cancelar', {
       despachoId: despacho.id,
+      organizationId: despacho.organization_id,
     });
 
     despacho.estado = EstadoDespacho.CANCELADO;

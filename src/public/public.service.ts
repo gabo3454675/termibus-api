@@ -86,6 +86,7 @@ export class PublicService {
       foto_url: dto.foto_url ?? null,
       qr_token: randomUUID(),
       activo: true,
+      organization_id: dto.organizationId ?? '00000000-0000-0000-0000-000000000000',
     });
     const guardado = await this.pasajeroRepo.save(pasajero);
     return { perfil: this.toPerfil(guardado), es_nuevo: true };
@@ -113,7 +114,7 @@ export class PublicService {
   }
 
   /** Salidas visibles para el público, con cupos disponibles */
-  async getSalidas(): Promise<SalidaPublica[]> {
+  async getSalidas(terminalId?: string): Promise<SalidaPublica[]> {
     const estadosVisibles = [
       EstadoDespacho.EN_COLA,
       EstadoDespacho.ASIGNADO,
@@ -122,8 +123,13 @@ export class PublicService {
       EstadoDespacho.RETRASADO,
     ];
 
+    const where: any = { estado: In(estadosVisibles) };
+    if (terminalId) {
+      where.terminal_id = terminalId;
+    }
+
     const despachos = await this.despachoRepo.find({
-      where: { estado: In(estadosVisibles) },
+      where,
       relations: DESPACHO_RELATIONS,
       order: { hora_programada: 'ASC', hora_asignacion: 'ASC' },
       take: 30,

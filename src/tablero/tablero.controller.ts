@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -15,15 +15,20 @@ export class TableroController {
   ) {}
 
   @Get()
-  async getTablero() {
+  async getTablero(@Query('terminal') terminalId?: string) {
     const estados = [
       EstadoDespacho.ASIGNADO,
       EstadoDespacho.EN_ANDEN,
       EstadoDespacho.DESPACHADO,
     ];
 
+    const where: any = { estado: In(estados) };
+    if (terminalId) {
+      where.terminal_id = terminalId;
+    }
+
     const despachos = await this.despachoRepo.find({
-      where: { estado: In(estados) },
+      where,
       relations: DESPACHO_RELATIONS,
       order: { hora_asignacion: 'ASC' },
       take: 20,

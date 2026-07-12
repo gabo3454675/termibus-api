@@ -25,6 +25,7 @@ export interface DespachoEventPayload {
 
 export interface DespachoEstadoCambiadoPayload {
   despachoId: string;
+  organizationId: string;
   estadoAnterior: string | null;
   estadoNuevo: string;
   timestamp: Date;

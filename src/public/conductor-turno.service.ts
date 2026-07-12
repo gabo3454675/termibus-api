@@ -211,6 +211,7 @@ export class ConductorTurnoService {
 
     this.stateMachine.transition(despacho.estado, 'confirmar', {
       despachoId: despacho.id,
+      organizationId: despacho.organization_id,
     });
 
     despacho.estado = EstadoDespacho.EN_ANDEN;

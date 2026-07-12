@@ -1,7 +1,62 @@
+/** @deprecated Usar OrganizationRole y TerminalRole en el modelo SaaS */
 export enum Rol {
   ADMIN = 'ADMIN',
   DESPACHADOR = 'DESPACHADOR',
   CONDUCTOR = 'CONDUCTOR',
+}
+
+export enum OrganizationRole {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  BILLING_ADMIN = 'BILLING_ADMIN',
+  MEMBER = 'MEMBER',
+}
+
+export enum TerminalRole {
+  DESPACHADOR = 'DESPACHADOR',
+  VIEWER = 'VIEWER',
+}
+
+export enum SubscriptionStatus {
+  TRIAL = 'TRIAL',
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum BillingPeriod {
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  OPEN = 'OPEN',
+  PAID = 'PAID',
+  VOID = 'VOID',
+}
+
+export enum InvitationStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  EXPIRED = 'EXPIRED',
+  REVOKED = 'REVOKED',
+}
+
+export enum PlanResource {
+  TERMINALES = 'TERMINALES',
+  USUARIOS = 'USUARIOS',
+  ANDENES = 'ANDENES',
+  DESPACHOS_MES = 'DESPACHOS_MES',
+  LINEAS = 'LINEAS',
+  UNIDADES = 'UNIDADES',
+}
+
+export enum PlanCode {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  ENTERPRISE = 'ENTERPRISE',
 }
 
 export enum EstadoUnidad {

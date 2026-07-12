@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rol } from '../common/enums';
 import { JwtAuthGuard, Roles, RolesGuard } from '../common/guards';
+import { CurrentUser } from '../common/decorators';
 import { CrudService } from '../common/crud.service';
 import { LineaTransporte } from '../entities/linea-transporte.entity';
 import { CreateLineaDto } from './dto/create-linea.dto';
@@ -30,12 +31,12 @@ export class LineasController {
     this.crud = new CrudService(repo);
   }
 
-  @Get() findAll() {
-    return this.crud.findAll();
+  @Get() findAll(@CurrentUser() user: { orgId: string }) {
+    return this.crud.findAll({ organization_id: user.orgId } as never);
   }
 
-  @Post() create(@Body() dto: CreateLineaDto) {
-    return this.crud.create(dto);
+  @Post() create(@Body() dto: CreateLineaDto, @CurrentUser() user: { orgId: string }) {
+    return this.crud.create({ ...dto, organization_id: user.orgId } as never);
   }
 
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateLineaDto) {
