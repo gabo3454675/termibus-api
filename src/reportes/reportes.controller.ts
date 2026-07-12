@@ -7,6 +7,7 @@ import { JwtAuthGuard, Roles, RolesGuard } from '../common/guards';
 import { CurrentUser } from '../common/decorators';
 import { Despacho } from '../entities/despacho.entity';
 import { Anden } from '../entities/anden.entity';
+import { cleanWhere } from '../common/typeorm-utils';
 
 @Controller('reportes')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,7 +31,7 @@ export class ReportesController {
 
     const despachos = await this.despachoRepo.find({
       where: {
-        terminal_id: user.terminal_id,
+        ...cleanWhere({ terminal_id: user.terminal_id }),
         estado: EstadoDespacho.DESPACHADO,
         hora_salida: Between(from, to),
       },
@@ -58,7 +59,7 @@ export class ReportesController {
     }
 
     const andenes = await this.andenRepo.find({
-      where: { terminal_id: user.terminal_id },
+      where: cleanWhere({ terminal_id: user.terminal_id }),
     });
 
     const andenTop = [...porAnden.entries()].sort((a, b) => b[1] - a[1])[0];

@@ -14,6 +14,7 @@ import { AuditLogService } from './audit-log.service';
 import { DispatchStateMachine } from './state-machine/dispatch-state-machine';
 import type { DispatchStrategy } from './strategies/dispatch-strategy.interface';
 import { RecursoNoEncontradoError, UnidadNoDisponibleError, AndenNoDisponibleError } from '../common/errors';
+import { cleanWhere } from '../common/typeorm-utils';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -88,11 +89,12 @@ export class DespachosService {
   }
 
   async findAll(terminalId: string, estado?: EstadoDespacho) {
-    const where: Record<string, unknown> = { terminal_id: terminalId };
+    const where: Record<string, unknown> = {};
+    if (terminalId) where.terminal_id = terminalId;
     if (estado) where.estado = estado;
 
     const list = await this.despachoRepo.find({
-      where,
+      where: cleanWhere(where),
       relations: DESPACHO_RELATIONS,
       order: { creado_en: 'DESC' },
     });

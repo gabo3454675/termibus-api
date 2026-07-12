@@ -14,6 +14,7 @@ import { Rol, EstadoDespacho } from '../common/enums';
 import { CurrentUser } from '../common/decorators';
 import { JwtAuthGuard, Roles, RolesGuard } from '../common/guards';
 import { CrudService } from '../common/crud.service';
+import { cleanWhere } from '../common/typeorm-utils';
 import { Anden } from '../entities/anden.entity';
 import { Despacho } from '../entities/despacho.entity';
 import { DESPACHO_RELATIONS } from '../common/relations';
@@ -36,14 +37,14 @@ export class AndenesController {
   @Roles(Rol.ADMIN, Rol.DESPACHADOR)
   async findAll(@CurrentUser() user: { terminal_id: string; orgId: string }) {
     const andenes = await this.repo.find({
-      where: { terminal_id: user.terminal_id, organization_id: user.orgId } as never,
+      where: cleanWhere({ terminal_id: user.terminal_id, organization_id: user.orgId }) as never,
       order: { numero: 'ASC' } as never,
     });
 
     const activos = await this.despachoRepo.find({
       where: [
-        { terminal_id: user.terminal_id, estado: EstadoDespacho.ASIGNADO },
-        { terminal_id: user.terminal_id, estado: EstadoDespacho.EN_ANDEN },
+        cleanWhere({ terminal_id: user.terminal_id, estado: EstadoDespacho.ASIGNADO }),
+        cleanWhere({ terminal_id: user.terminal_id, estado: EstadoDespacho.EN_ANDEN }),
       ],
       relations: DESPACHO_RELATIONS,
     });
@@ -69,6 +70,9 @@ export class AndenesController {
                   : undefined,
                 hora_programada: despacho.hora_programada,
                 hora_asignacion: despacho.hora_asignacion?.toISOString() ?? null,
+                hora_salida: despacho.hora_salida?.toISOString() ?? null,
+                prioridad: despacho.prioridad,
+                creado_en: despacho.creado_en.toISOString(),
                 estado: despacho.estado,
               }
             : null,
