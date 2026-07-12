@@ -190,12 +190,12 @@ export class DespachosService {
 
   async asignarAndenesLibres(terminalId: string) {
     const andenesLibres = await this.andenRepo.find({
-      where: { terminal_id: terminalId, estado: EstadoAnden.LIBRE },
+      where: cleanWhere({ terminal_id: terminalId, estado: EstadoAnden.LIBRE }),
       order: { numero: 'ASC' },
     });
 
     const cola = await this.despachoRepo.find({
-      where: { terminal_id: terminalId, estado: EstadoDespacho.EN_COLA },
+      where: cleanWhere({ terminal_id: terminalId, estado: EstadoDespacho.EN_COLA }),
       order: { prioridad: 'ASC', creado_en: 'ASC' },
       relations: DESPACHO_RELATIONS,
     });

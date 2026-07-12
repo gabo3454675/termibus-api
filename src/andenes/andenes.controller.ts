@@ -94,7 +94,12 @@ export class AndenesController {
 
   @Delete(':id')
   @Roles(Rol.ADMIN)
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
+    // Nullify FK on despachos before deleting
+    await this.despachoRepo.update(
+      { anden_id: id },
+      { anden_id: null },
+    );
     return this.crud.remove(id);
   }
 }
