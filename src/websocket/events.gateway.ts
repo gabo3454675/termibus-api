@@ -105,17 +105,17 @@ export class EventsGateway implements OnGatewayConnection, OnModuleInit {
 
     try {
       const payload = this.jwtService.verify<{
-        terminal_id?: string;
-        rol?: string;
+        terminalId?: string;
+        role?: string;
       }>(token);
 
       // Asignar rooms según payload verificado
-      if (payload.terminal_id) {
-        client.join(`terminal:${payload.terminal_id}`);
+      if (payload.terminalId) {
+        client.join(`terminal:${payload.terminalId}`);
       }
 
       // Solo ADMIN y DESPACHADOR pueden acceder a tablero
-      if (payload.rol === 'ADMIN' || payload.rol === 'DESPACHADOR') {
+      if (payload.role === 'ADMIN' || payload.role === 'DESPACHADOR') {
         client.join('tablero');
       }
     } catch {

@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { entities } from './entities';
 import { AuthModule } from './auth/auth.module';
@@ -21,7 +21,11 @@ import { SeedModule } from './seed/seed.module';
 import { ExternalModule } from './external/external.module';
 import { CircuitBreakerModule } from './circuit-breaker';
 import { PublicModule } from './public/public.module';
+import { AdminModule } from './admin/admin.module';
 import { RepositoriesModule } from './repositories/repositories.module';
+import { PlatformAuditLogModule } from './common/audit/platform-audit-log.module';
+import { MetricsModule } from './common/metrics/metrics.module';
+import { MetricsInterceptor } from './common/metrics/metrics.interceptor';
 
 @Module({
   imports: [
@@ -81,12 +85,19 @@ import { RepositoriesModule } from './repositories/repositories.module';
     CircuitBreakerModule,
     SeedModule,
     PublicModule,
+    AdminModule,
     RepositoriesModule,
+    PlatformAuditLogModule,
+    MetricsModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
     },
   ],
 })

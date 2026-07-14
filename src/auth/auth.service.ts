@@ -6,13 +6,18 @@ import { Repository } from 'typeorm';
 import { OrganizationMember } from '../entities/auth/organization-member.entity';
 import { TerminalAssignment } from '../entities/auth/terminal-assignment.entity';
 import { User } from '../entities/auth/user.entity';
-import { buildAuthContext } from './auth.types';
+import { buildAuthContext, JwtPayload } from './auth.types';
 
 const DEMO_EMAIL_ALIASES: Record<string, string> = {
   admin: 'admin@termibus-demo.com',
   despachador: 'despachador.norte@termibus-demo.com',
   conductor: 'conductor@termibus-demo.com',
+  superadmin: 'super_admin@termibus-demo.com',
 };
+
+function isDemoMode(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEMO_ALIASES === 'true';
+}
 
 @Injectable()
 export class AuthService {
@@ -32,7 +37,11 @@ export class AuthService {
 
   private resolveEmail(identifier: string): string {
     const normalized = identifier.trim().toLowerCase();
-    return DEMO_EMAIL_ALIASES[normalized] ?? normalized;
+    if (isDemoMode()) {
+      const resolved = DEMO_EMAIL_ALIASES[normalized];
+      if (resolved) return resolved;
+    }
+    return normalized;
   }
 
   async login(identifier: string, password: string, organizationId?: string) {
@@ -78,20 +87,16 @@ export class AuthService {
 
     await this.userRepo.update(user.id, { ultimo_login: new Date() });
 
-    const payload = {
+    const payload: JwtPayload = {
       sub: authUser.sub,
       email: authUser.email,
       orgId: authUser.orgId,
-      orgRole: authUser.orgRole,
+      organizationId: authUser.orgId,
+      role: authUser.orgRole,
       terminalId: authUser.terminalId,
-      terminalRole: authUser.terminalRole,
       conductorId: authUser.conductorId,
       tokenVersion: authUser.tokenVersion,
-      rol: authUser.rol,
-      username: authUser.username,
-      terminal_id: authUser.terminal_id,
-      conductor_id: authUser.conductor_id,
-      token_version: authUser.token_version,
+      isPlatformAdmin: authUser.isPlatformAdmin,
     };
 
     return {
@@ -103,6 +108,7 @@ export class AuthService {
         rol: authUser.rol,
         org_id: authUser.orgId,
         org_role: authUser.orgRole,
+        is_platform_admin: authUser.isPlatformAdmin,
         nombre_completo: authUser.nombre_completo,
         terminal_id: authUser.terminal_id,
         conductor_id: authUser.conductor_id,

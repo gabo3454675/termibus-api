@@ -11,23 +11,38 @@ export interface JwtPayload {
   sub: string;
   email: string;
   orgId: string;
-  orgRole: OrganizationRole;
+  organizationId: string;
+  role: OrganizationRole;
   terminalId: string | null;
-  terminalRole: TerminalRole | null;
   conductorId: string | null;
   tokenVersion: number;
+  /** Indicador de super-admin de plataforma (multi-tenant) */
+  isPlatformAdmin: boolean;
+}
+
+export interface AuthUser {
+  id: string;
+  sub: string;
+  email: string;
+  orgId: string;
+  organizationId: string;
+  role: OrganizationRole;
+  terminalId: string | null;
+  conductorId: string | null;
+  tokenVersion: number;
+  isPlatformAdmin: boolean;
   /** Rol legacy para compatibilidad con guards existentes */
   rol: Rol;
   /** Alias legacy */
   username: string;
+  nombre_completo: string;
+  /** Campos computados desde BD (no en JWT) */
+  orgRole: OrganizationRole;
+  terminalRole: TerminalRole | null;
+  /** Legacy snake_case para compatibilidad con controladores existentes */
   terminal_id: string | null;
   conductor_id: string | null;
   token_version: number;
-}
-
-export interface AuthUser extends JwtPayload {
-  id: string;
-  nombre_completo: string;
 }
 
 export function resolveLegacyRol(
@@ -63,16 +78,19 @@ export function buildAuthContext(
     sub: user.id,
     email: user.email,
     orgId: membership.organization_id,
-    orgRole,
+    organizationId: membership.organization_id,
+    role: orgRole,
     terminalId,
-    terminalRole,
     conductorId,
     tokenVersion: user.token_version,
+    isPlatformAdmin: user.is_platform_admin,
     rol,
     username: user.email.split('@')[0],
+    nombre_completo: user.nombre_completo,
+    orgRole,
+    terminalRole,
     terminal_id: terminalId,
     conductor_id: conductorId,
     token_version: user.token_version,
-    nombre_completo: user.nombre_completo,
   };
 }

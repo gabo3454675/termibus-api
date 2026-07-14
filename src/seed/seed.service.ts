@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   BillingPeriod,
   EstadoAnden,
@@ -62,6 +62,7 @@ export class SeedService implements OnModuleInit {
     private readonly andenRepo: Repository<Anden>,
     @InjectRepository(Despacho)
     private readonly despachoRepo: Repository<Despacho>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
@@ -82,13 +83,25 @@ export class SeedService implements OnModuleInit {
       return;
     }
 
-    await this.seed();
-    this.logger.log('Seed completado');
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.seed(queryRunner.manager);
+      await queryRunner.commitTransaction();
+      this.logger.log('Seed completado exitosamente');
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error('Seed falló, rollback ejecutado', error);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  async seed() {
+  async seed(manager: EntityManager) {
     // ── 1. Plan FREE ──────────────────────────────────────────────
-    const freePlan = await this.planRepo.save({
+    const freePlan = await manager.save(Plan, {
       codigo: PlanCode.FREE,
       nombre: 'Free',
       precio_mensual_usd: 0,
@@ -97,7 +110,7 @@ export class SeedService implements OnModuleInit {
       orden: 1,
     });
 
-    await this.planLimitRepo.save([
+    await manager.save(PlanLimit, [
       { plan_id: freePlan.id, recurso: PlanResource.TERMINALES, limite: 1 },
       { plan_id: freePlan.id, recurso: PlanResource.USUARIOS, limite: 3 },
       { plan_id: freePlan.id, recurso: PlanResource.ANDENES, limite: 6 },
@@ -107,7 +120,7 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── 2. Organization ──────────────────────────────────────────
-    const org = await this.organizationRepo.save({
+    const org = await manager.save(Organization, {
       nombre: 'Cooperativa TermiBus Demo',
       slug: 'termibus-demo',
       email_contacto: 'admin@termibus-demo.com',
@@ -118,7 +131,7 @@ export class SeedService implements OnModuleInit {
     });
 
     // ── 3. Subscription ──────────────────────────────────────────
-    await this.subscriptionRepo.save({
+    await manager.save(Subscription, {
       organization_id: org.id,
       plan_id: freePlan.id,
       estado: SubscriptionStatus.ACTIVE,
@@ -131,7 +144,7 @@ export class SeedService implements OnModuleInit {
     });
 
     // ── 4. Terminales ────────────────────────────────────────────
-    const terminalNorte = await this.terminalRepo.save({
+    const terminalNorte = await manager.save(Terminal, {
       organization_id: org.id,
       nombre: 'Terminal Norte',
       slug: 'norte',
@@ -140,7 +153,7 @@ export class SeedService implements OnModuleInit {
       activo: true,
     });
 
-    const terminalSur = await this.terminalRepo.save({
+    const terminalSur = await manager.save(Terminal, {
       organization_id: org.id,
       nombre: 'Terminal Sur',
       slug: 'sur',
@@ -152,7 +165,7 @@ export class SeedService implements OnModuleInit {
     // ── 5. Users ─────────────────────────────────────────────────
     const hash = await bcrypt.hash('termibus123', 10);
 
-    const userOwner = await this.userRepo.save({
+    const userOwner = await manager.save(User, {
       email: 'owner@termibus-demo.com',
       password_hash: hash,
       nombre_completo: 'Administrador Terminal',
@@ -161,7 +174,7 @@ export class SeedService implements OnModuleInit {
       conductor_id: null,
     });
 
-    const userAdmin = await this.userRepo.save({
+    const userAdmin = await manager.save(User, {
       email: 'admin@termibus-demo.com',
       password_hash: hash,
       nombre_completo: 'Rosa Villegas',
@@ -170,7 +183,7 @@ export class SeedService implements OnModuleInit {
       conductor_id: null,
     });
 
-    const userDespachadorNorte = await this.userRepo.save({
+    const userDespachadorNorte = await manager.save(User, {
       email: 'despachador.norte@termibus-demo.com',
       password_hash: hash,
       nombre_completo: 'Despachador Terminal Norte',
@@ -179,7 +192,7 @@ export class SeedService implements OnModuleInit {
       conductor_id: null,
     });
 
-    const userDespachadorSur = await this.userRepo.save({
+    const userDespachadorSur = await manager.save(User, {
       email: 'despachador.sur@termibus-demo.com',
       password_hash: hash,
       nombre_completo: 'Despachador Terminal Sur',
@@ -188,29 +201,40 @@ export class SeedService implements OnModuleInit {
       conductor_id: null,
     });
 
+    // Super Admin global (platform admin) — sin membresía de organización por defecto,
+    // se le asigna OWNER de la segunda org demo más abajo para probar dual-role.
+    const userSuperAdmin = await manager.save(User, {
+      email: 'super_admin@termibus-demo.com',
+      password_hash: hash,
+      nombre_completo: 'Super Admin TermiBus',
+      activo: true,
+      is_platform_admin: true,
+      conductor_id: null,
+    });
+
     // ── 6. Organization Members ──────────────────────────────────
-    const memberOwner = await this.memberRepo.save({
+    const memberOwner = await manager.save(OrganizationMember, {
       organization_id: org.id,
       user_id: userOwner.id,
       rol: OrganizationRole.OWNER,
       activo: true,
     });
 
-    const memberAdmin = await this.memberRepo.save({
+    const memberAdmin = await manager.save(OrganizationMember, {
       organization_id: org.id,
       user_id: userAdmin.id,
       rol: OrganizationRole.ADMIN,
       activo: true,
     });
 
-    const memberDespachadorNorte = await this.memberRepo.save({
+    const memberDespachadorNorte = await manager.save(OrganizationMember, {
       organization_id: org.id,
       user_id: userDespachadorNorte.id,
       rol: OrganizationRole.MEMBER,
       activo: true,
     });
 
-    const memberDespachadorSur = await this.memberRepo.save({
+    const memberDespachadorSur = await manager.save(OrganizationMember, {
       organization_id: org.id,
       user_id: userDespachadorSur.id,
       rol: OrganizationRole.MEMBER,
@@ -218,7 +242,7 @@ export class SeedService implements OnModuleInit {
     });
 
     // ── 7. Terminal Assignments ──────────────────────────────────
-    await this.assignmentRepo.save([
+    await manager.save(TerminalAssignment, [
       {
         organization_member_id: memberDespachadorNorte.id,
         terminal_id: terminalNorte.id,
@@ -234,7 +258,7 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── 8. Líneas (split across terminals) ───────────────────────
-    const lineas = await this.lineaRepo.save([
+    const lineas = await manager.save(LineaTransporte, [
       {
         organization_id: org.id,
         terminal_id: terminalNorte.id,
@@ -270,7 +294,7 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── 9. Unidades (aligned with mock-data.ts) ──────────────────
-    const unidades = await this.unidadRepo.save([
+    const unidades = await manager.save(Unidad, [
       {
         organization_id: org.id,
         placa: 'AB123CD',
@@ -337,7 +361,7 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── 10. Conductores (aligned with mock-data.ts) ──────────────
-    const conductores = await this.conductorRepo.save([
+    const conductores = await manager.save(Conductor, [
       {
         organization_id: org.id,
         cedula: 'V-12345678',
@@ -401,7 +425,7 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── Link conductor user to first conductor ─────────────────
-    const userConductor = await this.userRepo.save({
+    const userConductor = await manager.save(User, {
       email: 'conductor@termibus-demo.com',
       password_hash: hash,
       nombre_completo: 'Juan Carlos Pérez Rivas',
@@ -410,7 +434,7 @@ export class SeedService implements OnModuleInit {
       conductor_id: conductores[0].id,
     });
 
-    await this.memberRepo.save({
+    await manager.save(OrganizationMember, {
       organization_id: org.id,
       user_id: userConductor.id,
       rol: OrganizationRole.MEMBER,
@@ -418,7 +442,7 @@ export class SeedService implements OnModuleInit {
     });
 
     // ── 11. Destinos (shared across org, aligned with mock) ──────
-    const destinos = await this.destinoRepo.save([
+    const destinos = await manager.save(Destino, [
       {
         organization_id: org.id,
         nombre: 'Caracas - Centro',
@@ -464,7 +488,8 @@ export class SeedService implements OnModuleInit {
     ]);
 
     // ── 12. Andenes (6 per terminal, matching mock states) ─────
-    const andenesNorte = await this.andenRepo.save(
+    const andenesNorte = await manager.save(
+      Anden,
       [1, 2, 3, 4, 5, 6].map((numero) => {
         let estado = EstadoAnden.LIBRE;
         let descripcion = `Andén ${numero}`;
@@ -491,7 +516,8 @@ export class SeedService implements OnModuleInit {
       }),
     );
 
-    await this.andenRepo.save(
+    await manager.save(
+      Anden,
       [7, 8, 9, 10, 11, 12].map((numero) => ({
         organization_id: org.id,
         terminal_id: terminalSur.id,
@@ -512,7 +538,7 @@ export class SeedService implements OnModuleInit {
     // ── 13. Despachos (on Terminal Norte, matching mock states) ──
     const now = new Date();
 
-    await this.despachoRepo.save([
+    await manager.save(Despacho, [
       {
         organization_id: org.id,
         terminal_id: terminalNorte.id,
@@ -599,5 +625,61 @@ export class SeedService implements OnModuleInit {
         creado_en: new Date(now.getTime() - 90 * 60000),
       },
     ]);
+
+    // ── 14. Plan PRO + segunda organización demo ─────────────────
+    // Crea un plan PRO (si no existe) y una segunda organización demo
+    // para probar multi-tenant y dual-role (platform admin + org owner).
+    let proPlan = await manager.findOne(Plan, {
+      where: { codigo: PlanCode.PRO },
+    });
+    if (!proPlan) {
+      proPlan = await manager.save(Plan, {
+        codigo: PlanCode.PRO,
+        nombre: 'Pro',
+        precio_mensual_usd: 49,
+        precio_anual_usd: 490,
+        activo: true,
+        orden: 2,
+      });
+
+      await manager.save(PlanLimit, [
+        { plan_id: proPlan.id, recurso: PlanResource.TERMINALES, limite: 5 },
+        { plan_id: proPlan.id, recurso: PlanResource.USUARIOS, limite: 25 },
+        { plan_id: proPlan.id, recurso: PlanResource.ANDENES, limite: 30 },
+        { plan_id: proPlan.id, recurso: PlanResource.DESPACHOS_MES, limite: 5000 },
+        { plan_id: proPlan.id, recurso: PlanResource.LINEAS, limite: 20 },
+        { plan_id: proPlan.id, recurso: PlanResource.UNIDADES, limite: 50 },
+      ]);
+    }
+
+    const orgPro = await manager.save(Organization, {
+      nombre: 'TermiBus Pro Demo',
+      slug: 'termibus-pro-demo',
+      email_contacto: 'pro@termibus-demo.com',
+      telefono: '0212-555-0100',
+      pais: 'Venezuela',
+      timezone: 'America/Caracas',
+      activo: true,
+    });
+
+    await manager.save(Subscription, {
+      organization_id: orgPro.id,
+      plan_id: proPlan.id,
+      estado: SubscriptionStatus.ACTIVE,
+      periodo: BillingPeriod.MONTHLY,
+      trial_ends_at: null,
+      current_period_start: new Date(),
+      current_period_end: new Date(
+        Date.now() + 30 * 24 * 60 * 60 * 1000,
+      ),
+    });
+
+    // Asigna el super_admin como OWNER de la segunda org (dual-role).
+    await manager.save(OrganizationMember, {
+      organization_id: orgPro.id,
+      user_id: userSuperAdmin.id,
+      rol: OrganizationRole.OWNER,
+      activo: true,
+    });
   }
 }

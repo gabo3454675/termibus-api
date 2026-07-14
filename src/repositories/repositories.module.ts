@@ -27,6 +27,11 @@ import { Pasajero } from '../entities/operations/pasajero.entity';
 import { Abordaje } from '../entities/operations/abordaje.entity';
 import { SesionConductor } from '../entities/operations/sesion-conductor.entity';
 import { SyncChangeLog } from '../entities/operations/sync-changelog.entity';
+import { Invoice } from '../entities/billing/invoice.entity';
+import { UsageRecord } from '../entities/billing/usage-record.entity';
+import { FeatureFlag } from '../entities/platform/feature-flag.entity';
+import { OrganizationFeature } from '../entities/platform/organization-feature.entity';
+import { Invitation } from '../entities/auth/invitation.entity';
 
 @Global()
 @Module({
@@ -46,11 +51,16 @@ import { SyncChangeLog } from '../entities/operations/sync-changelog.entity';
       Conductor,
       Destino,
       DespachoAuditLog,
+      FeatureFlag,
+      Invitation,
+      Invoice,
       LineaTransporte,
+      OrganizationFeature,
       Pasajero,
       Abordaje,
       SesionConductor,
       SyncChangeLog,
+      UsageRecord,
     ]),
   ],
   providers: [
