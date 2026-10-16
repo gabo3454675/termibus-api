@@ -54,6 +54,10 @@ export class Despacho {
   @Column({ type: 'float', nullable: true })
   tarifa: number | null;
 
+  /** Override de la tasa de terminal del destino para este despacho (opcional) */
+  @Column({ type: 'float', nullable: true })
+  tasa_terminal: number | null;
+
   @Column({ type: 'varchar', default: EstadoDespacho.EN_COLA })
   estado: EstadoDespacho;
 

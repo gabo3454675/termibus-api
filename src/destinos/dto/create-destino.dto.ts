@@ -29,6 +29,12 @@ export class CreateDestinoDto {
   @Min(0)
   tarifa?: number;
 
+  /** Derecho de salida / tasa del terminal */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tasa_terminal?: number;
+
   @IsOptional()
   @IsString()
   @IsIn(['VES', 'USD'])

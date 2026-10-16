@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Abordaje } from '../entities/abordaje.entity';
+import { CierreTurno } from '../entities/cierre-turno.entity';
 import { Conductor } from '../entities/conductor.entity';
 import { Despacho } from '../entities/despacho.entity';
 import { Organization } from '../entities/tenant/organization.entity';
@@ -19,6 +20,7 @@ import { PublicService } from './public.service';
       Abordaje,
       Conductor,
       SesionConductor,
+      CierreTurno,
       Organization,
     ]),
     DespachosModule,

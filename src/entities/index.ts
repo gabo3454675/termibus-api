@@ -31,6 +31,7 @@ export { DespachoAuditLog } from './operations/despacho-audit-log.entity';
 export { Pasajero } from './operations/pasajero.entity';
 export { Abordaje } from './operations/abordaje.entity';
 export { SesionConductor } from './operations/sesion-conductor.entity';
+export { CierreTurno } from './operations/cierre-turno.entity';
 export { SyncChangeLog } from './operations/sync-changelog.entity';
 
 /** @deprecated Usar User */
@@ -61,6 +62,7 @@ import { DespachoAuditLog } from './operations/despacho-audit-log.entity';
 import { Pasajero } from './operations/pasajero.entity';
 import { Abordaje } from './operations/abordaje.entity';
 import { SesionConductor } from './operations/sesion-conductor.entity';
+import { CierreTurno } from './operations/cierre-turno.entity';
 import { SyncChangeLog } from './operations/sync-changelog.entity';
 
 export const entities = [
@@ -88,5 +90,6 @@ export const entities = [
   Pasajero,
   Abordaje,
   SesionConductor,
+  CierreTurno,
   SyncChangeLog,
 ];

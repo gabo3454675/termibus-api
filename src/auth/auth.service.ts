@@ -9,6 +9,7 @@ import { User } from '../entities/auth/user.entity';
 import { buildAuthContext, JwtPayload } from './auth.types';
 
 const DEMO_EMAIL_ALIASES: Record<string, string> = {
+  owner: 'owner@termibus-demo.com',
   admin: 'admin@termibus-demo.com',
   despachador: 'despachador.norte@termibus-demo.com',
   conductor: 'conductor@termibus-demo.com',

@@ -98,8 +98,10 @@ export class EventsGateway implements OnGatewayConnection, OnModuleInit {
       client.handshake.auth?.token ||
       (client.handshake.query?.token as string | undefined);
 
+    // Conexión pública (p. ej. tablero/pizarra): se permite sin token, pero
+    // sin acceso a rooms privados por terminal. Los eventos de despacho se
+    // emiten de forma global, por lo que el tablero público sí los recibe.
     if (!token) {
-      client.disconnect();
       return;
     }
 

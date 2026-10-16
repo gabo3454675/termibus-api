@@ -18,6 +18,7 @@ import {
 } from '../common/enums';
 import { DESPACHO_RELATIONS } from '../common/relations';
 import { Abordaje } from '../entities/abordaje.entity';
+import { CierreTurno } from '../entities/cierre-turno.entity';
 import { Conductor } from '../entities/conductor.entity';
 import { Despacho } from '../entities/despacho.entity';
 import { Pasajero } from '../entities/pasajero.entity';
@@ -48,6 +49,10 @@ export interface TurnoConductor {
   placa: string | null;
   /** Tarifa efectiva del pasaje para este despacho */
   tarifa: number;
+  /** Derecho de salida / tasa del terminal para este despacho */
+  tasa_terminal: number;
+  /** Total a cobrar por pasajero (pasaje + tasa terminal) */
+  total: number;
   moneda: string;
   /** Total recaudado (pagos PAGADO) */
   recaudado: number;
@@ -77,6 +82,22 @@ interface ResumenPagos {
   pendientes_cobro: number;
 }
 
+export interface CierreTurnoResumen {
+  id: string;
+  despacho_id: string;
+  terminal_id: string | null;
+  pasajeros: number;
+  efectivo: number;
+  pago_movil: number;
+  otros: number;
+  recaudado: number;
+  monto_pendiente: number;
+  tasa_total: number;
+  moneda: string;
+  notas: string | null;
+  cerrado_en: string;
+}
+
 @Injectable()
 export class ConductorTurnoService {
   constructor(
@@ -90,6 +111,8 @@ export class ConductorTurnoService {
     private readonly abordajeRepo: Repository<Abordaje>,
     @InjectRepository(Pasajero)
     private readonly pasajeroRepo: Repository<Pasajero>,
+    @InjectRepository(CierreTurno)
+    private readonly cierreRepo: Repository<CierreTurno>,
     private readonly publicService: PublicService,
     private readonly stateMachine: DispatchStateMachine,
     private readonly eventEmitter: EventEmitter2,
@@ -102,9 +125,14 @@ export class ConductorTurnoService {
     EstadoDespacho.DESPACHADO,
   ];
 
-  private tarifaEfectiva(d: Despacho): { tarifa: number; moneda: string } {
+  private tarifaEfectiva(d: Despacho): {
+    tarifa: number;
+    tasa: number;
+    moneda: string;
+  } {
     return {
       tarifa: d.tarifa ?? d.destino?.tarifa ?? 0,
+      tasa: d.tasa_terminal ?? d.destino?.tasa_terminal ?? 0,
       moneda: d.destino?.moneda ?? 'VES',
     };
   }
@@ -134,7 +162,7 @@ export class ConductorTurnoService {
     pagos: ResumenPagos,
   ): TurnoConductor {
     const capacidad = d.unidad?.capacidad ?? 0;
-    const { tarifa, moneda } = this.tarifaEfectiva(d);
+    const { tarifa, tasa, moneda } = this.tarifaEfectiva(d);
     return {
       id: d.id,
       estado: d.estado,
@@ -147,6 +175,8 @@ export class ConductorTurnoService {
       disponibles: Math.max(0, capacidad - ocupacion),
       placa: d.unidad?.placa ?? null,
       tarifa,
+      tasa_terminal: tasa,
+      total: tarifa + tasa,
       moneda,
       recaudado: pagos.recaudado,
       monto_pendiente: pagos.monto_pendiente,
@@ -385,9 +415,10 @@ export class ConductorTurnoService {
       throw new BadRequestException('Bus lleno — no hay cupos disponibles');
     }
 
-    const { tarifa, moneda } = this.tarifaEfectiva(despacho);
+    const { tarifa, tasa, moneda } = this.tarifaEfectiva(despacho);
     const pagado = Boolean(pago?.metodo_pago);
-    const monto = pago?.monto ?? tarifa;
+    const pasaje = pago?.monto ?? tarifa;
+    const monto = pasaje + tasa;
 
     const abordaje = await this.abordajeRepo.save(
       this.abordajeRepo.create({
@@ -398,6 +429,7 @@ export class ConductorTurnoService {
         origen: OrigenAbordaje.QR,
         escaneado_en: new Date(),
         monto,
+        tasa,
         moneda,
         metodo_pago: pago?.metodo_pago ?? null,
         referencia: pago?.referencia ?? null,
@@ -463,9 +495,9 @@ export class ConductorTurnoService {
       });
     }
 
-    const { tarifa, moneda } = this.tarifaEfectiva(despacho);
+    const { tarifa, tasa, moneda } = this.tarifaEfectiva(despacho);
     const pagado = Boolean(dto.metodo_pago);
-    const montoUnit = dto.monto ?? tarifa;
+    const montoUnit = (dto.monto ?? tarifa) + tasa;
 
     const nuevos: Abordaje[] = [];
     for (let i = 0; i < cantidad; i++) {
@@ -478,6 +510,7 @@ export class ConductorTurnoService {
           origen: OrigenAbordaje.MANUAL,
           escaneado_en: new Date(),
           monto: montoUnit,
+          tasa,
           moneda,
           metodo_pago: dto.metodo_pago ?? null,
           referencia: dto.referencia ?? null,
@@ -554,6 +587,85 @@ export class ConductorTurnoService {
       turno: this.mapTurno(despacho, ocupacion, pagos),
       mensaje: 'Cobro registrado',
     };
+  }
+
+  private mapCierre(c: CierreTurno): CierreTurnoResumen {
+    return {
+      id: c.id,
+      despacho_id: c.despacho_id,
+      terminal_id: c.terminal_id,
+      pasajeros: c.pasajeros,
+      efectivo: c.efectivo,
+      pago_movil: c.pago_movil,
+      otros: c.otros,
+      recaudado: c.recaudado,
+      monto_pendiente: c.monto_pendiente,
+      tasa_total: c.tasa_total,
+      moneda: c.moneda,
+      notas: c.notas,
+      cerrado_en: c.cerrado_en.toISOString(),
+    };
+  }
+
+  /**
+   * Cierra la caja del turno: calcula el desglose por método de pago, lo
+   * persiste como arqueo y desactiva la sesión del conductor.
+   */
+  async cerrarTurno(sessionToken: string, notas?: string) {
+    const sesion = await this.validarSesion(sessionToken);
+    const despacho = await this.cargarDespacho(sesion.despacho_id);
+
+    const rows = await this.abordajeRepo.find({
+      where: { despacho_id: despacho.id, estado: EstadoAbordaje.ABORDADO },
+      select: { monto: true, tasa: true, estado_pago: true, metodo_pago: true },
+    });
+
+    let pasajeros = 0;
+    let efectivo = 0;
+    let pago_movil = 0;
+    let otros = 0;
+    let monto_pendiente = 0;
+    let tasa_total = 0;
+
+    for (const r of rows) {
+      pasajeros++;
+      tasa_total += r.tasa ?? 0;
+      if (r.estado_pago === EstadoPago.PAGADO) {
+        const m = r.monto ?? 0;
+        if (r.metodo_pago === MetodoPago.EFECTIVO) efectivo += m;
+        else if (r.metodo_pago === MetodoPago.PAGO_MOVIL) pago_movil += m;
+        else otros += m;
+      } else if (r.estado_pago === EstadoPago.PENDIENTE) {
+        monto_pendiente += r.monto ?? 0;
+      }
+    }
+
+    const recaudado = efectivo + pago_movil + otros;
+    const { moneda } = this.tarifaEfectiva(despacho);
+
+    const cierre = await this.cierreRepo.save(
+      this.cierreRepo.create({
+        organization_id: despacho.organization_id,
+        despacho_id: despacho.id,
+        conductor_id: sesion.conductor_id,
+        terminal_id: despacho.terminal_id,
+        pasajeros,
+        efectivo,
+        pago_movil,
+        otros,
+        recaudado,
+        monto_pendiente,
+        tasa_total,
+        moneda,
+        notas: notas?.trim() ? notas.trim() : null,
+        cerrado_por: sesion.conductor_id,
+        cerrado_en: new Date(),
+      }),
+    );
+
+    await this.sesionRepo.update({ token: sesion.token }, { activa: false });
+
+    return { ok: true, cierre: this.mapCierre(cierre) };
   }
 
   async listarAbordajes(sessionToken: string): Promise<AbordajeResumen[]> {

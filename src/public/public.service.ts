@@ -64,6 +64,10 @@ export interface SalidaPublica {
   duracion_estimada_min: number | null;
   /** Tarifa del pasaje para esta salida */
   tarifa: number;
+  /** Derecho de salida / tasa del terminal */
+  tasa_terminal: number;
+  /** Total a pagar por pasajero (pasaje + tasa) */
+  total: number;
   moneda: string;
   /** Datos de Pago Móvil del terminal */
   pago_movil: PagoMovilPublico | null;
@@ -240,6 +244,8 @@ export class PublicService {
     return despachos.map((d) => {
       const capacidad = d.unidad?.capacidad ?? 0;
       const ocupacion = ocupacionPorDespacho.get(d.id) ?? 0;
+      const tarifa = d.tarifa ?? d.destino?.tarifa ?? 0;
+      const tasa = d.tasa_terminal ?? d.destino?.tasa_terminal ?? 0;
       const t = d.terminal;
       const pago_movil: PagoMovilPublico | null =
         t &&
@@ -263,7 +269,9 @@ export class PublicService {
         ocupacion,
         disponibles: Math.max(0, capacidad - ocupacion),
         duracion_estimada_min: d.destino?.duracion_estimada_min ?? null,
-        tarifa: d.tarifa ?? d.destino?.tarifa ?? 0,
+        tarifa,
+        tasa_terminal: tasa,
+        total: tarifa + tasa,
         moneda: d.destino?.moneda ?? 'VES',
         pago_movil,
       };

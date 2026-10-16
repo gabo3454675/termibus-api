@@ -37,9 +37,13 @@ export class Abordaje {
   origen: OrigenAbordaje;
 
   // ─── Cobro ───────────────────────────────────────────────────
-  /** Tarifa efectiva del pasaje al momento del abordaje */
+  /** Monto TOTAL cobrado al pasajero (pasaje + tasa_terminal) */
   @Column({ type: 'float', default: 0 })
   monto: number;
+
+  /** Porción de `monto` correspondiente al derecho de salida del terminal */
+  @Column({ type: 'float', default: 0 })
+  tasa: number;
 
   @Column({ type: 'varchar', default: 'VES' })
   moneda: string;

@@ -28,6 +28,10 @@ export class Destino {
   @Column({ type: 'float', default: 0 })
   tarifa: number;
 
+  /** Derecho de salida / tasa del terminal (se cobra junto al boleto) */
+  @Column({ type: 'float', default: 0 })
+  tasa_terminal: number;
+
   @Column({ type: 'varchar', default: 'VES' })
   moneda: string;
 

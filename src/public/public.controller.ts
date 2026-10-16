@@ -126,6 +126,17 @@ export class PublicController {
     return this.conductorTurno.cobrar(token.trim(), id, dto);
   }
 
+  @Post('conductor/cerrar-turno')
+  cerrarTurno(
+    @Headers('x-conductor-session') token: string | undefined,
+    @Body('notas') notas?: string,
+  ) {
+    if (!token?.trim()) {
+      throw new UnauthorizedException('Falta la sesión de conductor');
+    }
+    return this.conductorTurno.cerrarTurno(token.trim(), notas);
+  }
+
   @Get('conductor/abordajes')
   @SkipThrottle()
   abordajesConductor(@Headers('x-conductor-session') token?: string) {

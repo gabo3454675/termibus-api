@@ -13,6 +13,7 @@ import { CurrentUser } from '../common/decorators';
 import { Despacho } from '../entities/despacho.entity';
 import { Anden } from '../entities/anden.entity';
 import { Abordaje } from '../entities/abordaje.entity';
+import { CierreTurno } from '../entities/cierre-turno.entity';
 import { cleanWhere } from '../common/typeorm-utils';
 
 @Controller('reportes')
@@ -26,6 +27,8 @@ export class ReportesController {
     private readonly andenRepo: Repository<Anden>,
     @InjectRepository(Abordaje)
     private readonly abordajeRepo: Repository<Abordaje>,
+    @InjectRepository(CierreTurno)
+    private readonly cierreRepo: Repository<CierreTurno>,
   ) {}
 
   @Get('salidas')
@@ -83,6 +86,7 @@ export class ReportesController {
     let montoRecaudado = 0;
     let montoPendiente = 0;
     let pagosPendientes = 0;
+    let tasaRecaudada = 0;
 
     const despachoIds = despachos.map((d) => d.id);
     if (despachoIds.length > 0) {
@@ -96,6 +100,7 @@ export class ReportesController {
       for (const a of abordajes) {
         if (a.estado_pago === EstadoPago.PAGADO) {
           montoRecaudado += a.monto ?? 0;
+          tasaRecaudada += a.tasa ?? 0;
           const key = a.metodo_pago ?? 'SIN_METODO';
           const acc = porMetodo.get(key) ?? { total: 0, monto: 0 };
           acc.total++;
@@ -133,12 +138,86 @@ export class ReportesController {
       // Recaudación
       pasajeros_abordados: pasajerosAbordados,
       monto_recaudado: Number(montoRecaudado.toFixed(2)),
+      monto_tasa: Number(tasaRecaudada.toFixed(2)),
       monto_pendiente: Number(montoPendiente.toFixed(2)),
       pagos_pendientes: pagosPendientes,
       por_metodo_pago: [...porMetodo.entries()].map(([metodo, v]) => ({
         metodo,
         total: v.total,
         monto: Number(v.monto.toFixed(2)),
+      })),
+    };
+  }
+
+  /** Cierres de caja (arqueos) registrados por los conductores */
+  @Get('cierres')
+  async cierres(
+    @CurrentUser() user: { terminal_id: string },
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+  ) {
+    const from = desde
+      ? new Date(desde)
+      : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = hasta ? new Date(`${hasta}T23:59:59`) : new Date();
+
+    const rows = await this.cierreRepo.find({
+      where: {
+        ...cleanWhere({ terminal_id: user.terminal_id }),
+        cerrado_en: Between(from, to),
+      },
+      order: { cerrado_en: 'DESC' },
+      take: 100,
+    });
+
+    const totales = rows.reduce(
+      (acc, c) => {
+        acc.recaudado += c.recaudado ?? 0;
+        acc.efectivo += c.efectivo ?? 0;
+        acc.pago_movil += c.pago_movil ?? 0;
+        acc.otros += c.otros ?? 0;
+        acc.pendiente += c.monto_pendiente ?? 0;
+        acc.tasa += c.tasa_total ?? 0;
+        acc.pasajeros += c.pasajeros ?? 0;
+        return acc;
+      },
+      {
+        recaudado: 0,
+        efectivo: 0,
+        pago_movil: 0,
+        otros: 0,
+        pendiente: 0,
+        tasa: 0,
+        pasajeros: 0,
+      },
+    );
+
+    return {
+      total: rows.length,
+      totales: {
+        recaudado: Number(totales.recaudado.toFixed(2)),
+        efectivo: Number(totales.efectivo.toFixed(2)),
+        pago_movil: Number(totales.pago_movil.toFixed(2)),
+        otros: Number(totales.otros.toFixed(2)),
+        pendiente: Number(totales.pendiente.toFixed(2)),
+        tasa: Number(totales.tasa.toFixed(2)),
+        pasajeros: totales.pasajeros,
+      },
+      cierres: rows.map((c) => ({
+        id: c.id,
+        despacho_id: c.despacho_id,
+        terminal_id: c.terminal_id,
+        conductor_id: c.conductor_id,
+        pasajeros: c.pasajeros,
+        efectivo: c.efectivo,
+        pago_movil: c.pago_movil,
+        otros: c.otros,
+        recaudado: c.recaudado,
+        monto_pendiente: c.monto_pendiente,
+        tasa_total: c.tasa_total,
+        moneda: c.moneda,
+        notas: c.notas,
+        cerrado_en: c.cerrado_en,
       })),
     };
   }

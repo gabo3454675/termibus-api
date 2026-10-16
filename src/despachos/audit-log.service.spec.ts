@@ -58,6 +58,7 @@ describe('AuditLogService', () => {
         estado_nuevo: 'ASIGNADO',
         usuario_id: 'u-456',
         razon: 'Asignación manual',
+        organization_id: 'org-1',
       });
       expect(mockRepo.save).toHaveBeenCalledWith(createdEntry);
     });
@@ -82,6 +83,7 @@ describe('AuditLogService', () => {
         estado_nuevo: 'EN_COLA',
         usuario_id: null,
         razon: null,
+        organization_id: 'org-1',
       });
     });
 
