@@ -50,6 +50,10 @@ export class Despacho {
   @Column({ type: 'datetime', nullable: true })
   hora_llegada: Date | null;
 
+  /** Override de la tarifa del destino para este despacho (opcional) */
+  @Column({ type: 'float', nullable: true })
+  tarifa: number | null;
+
   @Column({ type: 'varchar', default: EstadoDespacho.EN_COLA })
   estado: EstadoDespacho;
 

@@ -38,6 +38,19 @@ export class Terminal {
   @Column({ default: true })
   activo: boolean;
 
+  // ─── Datos de Pago Móvil (para el cobro del pasaje) ──────────
+  @Column({ type: 'varchar', nullable: true })
+  pago_movil_banco: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  pago_movil_telefono: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  pago_movil_cedula_rif: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  pago_movil_titular: string | null;
+
   @CreateDateColumn({ type: 'datetime' })
   creado_en: Date;
 

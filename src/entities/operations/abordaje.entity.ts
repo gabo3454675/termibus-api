@@ -6,7 +6,12 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { EstadoAbordaje } from '../../common/enums';
+import {
+  EstadoAbordaje,
+  EstadoPago,
+  MetodoPago,
+  OrigenAbordaje,
+} from '../../common/enums';
 import { Despacho } from './despacho.entity';
 import { Pasajero } from './pasajero.entity';
 
@@ -18,14 +23,43 @@ export class Abordaje {
   @Column()
   organization_id: string;
 
-  @Column()
-  pasajero_id: string;
+  /** Null cuando el abordaje es anónimo (registrado manualmente sin identidad) */
+  @Column({ type: 'varchar', nullable: true })
+  pasajero_id: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   despacho_id: string | null;
 
-  @Column({ type: 'varchar', default: EstadoAbordaje.RESERVADO })
+  @Column({ type: 'varchar', default: EstadoAbordaje.ABORDADO })
   estado: EstadoAbordaje;
+
+  @Column({ type: 'varchar', default: OrigenAbordaje.QR })
+  origen: OrigenAbordaje;
+
+  // ─── Cobro ───────────────────────────────────────────────────
+  /** Tarifa efectiva del pasaje al momento del abordaje */
+  @Column({ type: 'float', default: 0 })
+  monto: number;
+
+  @Column({ type: 'varchar', default: 'VES' })
+  moneda: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  metodo_pago: MetodoPago | null;
+
+  /** Número de referencia del Pago Móvil / transferencia / punto de venta */
+  @Column({ type: 'varchar', nullable: true })
+  referencia: string | null;
+
+  @Column({ type: 'varchar', default: EstadoPago.PENDIENTE })
+  estado_pago: EstadoPago;
+
+  @Column({ type: 'datetime', nullable: true })
+  pagado_en: Date | null;
+
+  /** Quién cobró: id de conductor o de usuario staff */
+  @Column({ type: 'varchar', nullable: true })
+  cobrado_por: string | null;
 
   @Column({ type: 'datetime', nullable: true })
   escaneado_en: Date | null;
@@ -33,9 +67,9 @@ export class Abordaje {
   @CreateDateColumn({ type: 'datetime' })
   creado_en: Date;
 
-  @ManyToOne(() => Pasajero)
+  @ManyToOne(() => Pasajero, { nullable: true })
   @JoinColumn({ name: 'pasajero_id' })
-  pasajero: Pasajero;
+  pasajero: Pasajero | null;
 
   @ManyToOne(() => Despacho, { nullable: true })
   @JoinColumn({ name: 'despacho_id' })

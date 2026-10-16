@@ -1,14 +1,21 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { In, Repository } from 'typeorm';
-import { EstadoAbordaje, EstadoDespacho } from '../common/enums';
+import {
+  EstadoAbordaje,
+  EstadoDespacho,
+  EstadoPago,
+  MetodoPago,
+} from '../common/enums';
 import { DESPACHO_RELATIONS } from '../common/relations';
 import { Abordaje } from '../entities/abordaje.entity';
 import { Despacho } from '../entities/despacho.entity';
+import { Organization } from '../entities/tenant/organization.entity';
 import { Pasajero } from '../entities/pasajero.entity';
 import { RecuperarPasajeroDto } from './dto/recuperar-pasajero.dto';
 import { RegistroPasajeroDto } from './dto/registro-pasajero.dto';
@@ -24,6 +31,25 @@ export interface PasajeroPerfil {
   creado_en: Date;
 }
 
+export interface PagoMovilPublico {
+  banco: string | null;
+  telefono: string | null;
+  cedula_rif: string | null;
+  titular: string | null;
+}
+
+export interface ViajePasajero {
+  id: string;
+  destino: string | null;
+  linea: string | null;
+  fecha: string;
+  monto: number;
+  moneda: string;
+  metodo_pago: MetodoPago | null;
+  referencia: string | null;
+  estado_pago: EstadoPago;
+}
+
 export interface SalidaPublica {
   id: string;
   hora_programada: string | null;
@@ -36,6 +62,11 @@ export interface SalidaPublica {
   ocupacion: number;
   disponibles: number;
   duracion_estimada_min: number | null;
+  /** Tarifa del pasaje para esta salida */
+  tarifa: number;
+  moneda: string;
+  /** Datos de Pago Móvil del terminal */
+  pago_movil: PagoMovilPublico | null;
 }
 
 @Injectable()
@@ -47,7 +78,26 @@ export class PublicService {
     private readonly despachoRepo: Repository<Despacho>,
     @InjectRepository(Abordaje)
     private readonly abordajeRepo: Repository<Abordaje>,
+    @InjectRepository(Organization)
+    private readonly organizationRepo: Repository<Organization>,
   ) {}
+
+  /**
+   * El registro público de pasajeros no tiene contexto de terminal, así que
+   * se asocia a la primera organización activa para mantener la integridad
+   * referencial (FK). Puede sobreescribirse con `organizationId`.
+   */
+  private async resolverOrganizacion(organizationId?: string): Promise<string> {
+    if (organizationId) return organizationId;
+    const org = await this.organizationRepo.findOne({
+      where: { activo: true },
+      order: { creado_en: 'ASC' },
+    });
+    if (!org) {
+      throw new BadRequestException('No hay una organización activa configurada');
+    }
+    return org.id;
+  }
 
   /** Convierte entidad a respuesta segura (sin datos internos extra) */
   toPerfil(p: Pasajero): PasajeroPerfil {
@@ -67,7 +117,9 @@ export class PublicService {
    * Registro único: si la cédula ya existe, devuelve el perfil existente
    * (el pasajero no vuelve a llenar el formulario en viajes futuros).
    */
-  async registrar(dto: RegistroPasajeroDto): Promise<{ perfil: PasajeroPerfil; es_nuevo: boolean }> {
+  async registrar(
+    dto: RegistroPasajeroDto,
+  ): Promise<{ perfil: PasajeroPerfil; es_nuevo: boolean }> {
     const cedula = dto.cedula.trim();
     const existente = await this.pasajeroRepo.findOne({ where: { cedula } });
 
@@ -79,6 +131,9 @@ export class PublicService {
       return { perfil: this.toPerfil(existente), es_nuevo: false };
     }
 
+    const organization_id = await this.resolverOrganizacion(
+      dto.organizationId,
+    );
     const pasajero = this.pasajeroRepo.create({
       cedula,
       nombres: dto.nombres.trim(),
@@ -86,7 +141,7 @@ export class PublicService {
       foto_url: dto.foto_url ?? null,
       qr_token: randomUUID(),
       activo: true,
-      organization_id: dto.organizationId ?? '00000000-0000-0000-0000-000000000000',
+      organization_id,
     });
     const guardado = await this.pasajeroRepo.save(pasajero);
     return { perfil: this.toPerfil(guardado), es_nuevo: true };
@@ -111,6 +166,35 @@ export class PublicService {
       throw new NotFoundException('Perfil de pasajero no encontrado');
     }
     return this.toPerfil(pasajero);
+  }
+
+  /** Historial de abordajes del pasajero autenticado por su QR */
+  async misViajes(token: string): Promise<ViajePasajero[]> {
+    const pasajero = await this.pasajeroRepo.findOne({
+      where: { qr_token: token, activo: true },
+    });
+    if (!pasajero) {
+      throw new NotFoundException('Perfil de pasajero no encontrado');
+    }
+
+    const abordajes = await this.abordajeRepo.find({
+      where: { pasajero_id: pasajero.id, estado: EstadoAbordaje.ABORDADO },
+      relations: { despacho: { destino: true, unidad: { linea: true } } },
+      order: { escaneado_en: 'DESC' },
+      take: 30,
+    });
+
+    return abordajes.map((a) => ({
+      id: a.id,
+      destino: a.despacho?.destino?.nombre ?? null,
+      linea: a.despacho?.unidad?.linea?.nombre ?? null,
+      fecha: (a.escaneado_en ?? a.creado_en).toISOString(),
+      monto: a.monto,
+      moneda: a.moneda,
+      metodo_pago: a.metodo_pago,
+      referencia: a.referencia,
+      estado_pago: a.estado_pago,
+    }));
   }
 
   /** Salidas visibles para el público, con cupos disponibles */
@@ -156,6 +240,17 @@ export class PublicService {
     return despachos.map((d) => {
       const capacidad = d.unidad?.capacidad ?? 0;
       const ocupacion = ocupacionPorDespacho.get(d.id) ?? 0;
+      const t = d.terminal;
+      const pago_movil: PagoMovilPublico | null =
+        t &&
+        (t.pago_movil_banco || t.pago_movil_telefono || t.pago_movil_cedula_rif)
+          ? {
+              banco: t.pago_movil_banco,
+              telefono: t.pago_movil_telefono,
+              cedula_rif: t.pago_movil_cedula_rif,
+              titular: t.pago_movil_titular,
+            }
+          : null;
       return {
         id: d.id,
         hora_programada: d.hora_programada,
@@ -168,6 +263,9 @@ export class PublicService {
         ocupacion,
         disponibles: Math.max(0, capacidad - ocupacion),
         duracion_estimada_min: d.destino?.duracion_estimada_min ?? null,
+        tarifa: d.tarifa ?? d.destino?.tarifa ?? 0,
+        moneda: d.destino?.moneda ?? 'VES',
+        pago_movil,
       };
     });
   }

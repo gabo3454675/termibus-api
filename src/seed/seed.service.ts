@@ -77,9 +77,7 @@ export class SeedService implements OnModuleInit {
       where: { slug: 'termibus-demo' },
     });
     if (existingOrg) {
-      this.logger.log(
-        'Organización demo ya existe, omitiendo seed',
-      );
+      this.logger.log('Organización demo ya existe, omitiendo seed');
       return;
     }
 
@@ -114,7 +112,11 @@ export class SeedService implements OnModuleInit {
       { plan_id: freePlan.id, recurso: PlanResource.TERMINALES, limite: 1 },
       { plan_id: freePlan.id, recurso: PlanResource.USUARIOS, limite: 3 },
       { plan_id: freePlan.id, recurso: PlanResource.ANDENES, limite: 6 },
-      { plan_id: freePlan.id, recurso: PlanResource.DESPACHOS_MES, limite: 100 },
+      {
+        plan_id: freePlan.id,
+        recurso: PlanResource.DESPACHOS_MES,
+        limite: 100,
+      },
       { plan_id: freePlan.id, recurso: PlanResource.LINEAS, limite: 3 },
       { plan_id: freePlan.id, recurso: PlanResource.UNIDADES, limite: 5 },
     ]);
@@ -138,9 +140,7 @@ export class SeedService implements OnModuleInit {
       periodo: BillingPeriod.MONTHLY,
       trial_ends_at: null,
       current_period_start: new Date(),
-      current_period_end: new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000,
-      ),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
 
     // ── 4. Terminales ────────────────────────────────────────────
@@ -151,6 +151,10 @@ export class SeedService implements OnModuleInit {
       direccion: 'Av. Principal, Sector Terminal Norte',
       ciudad: 'Caracas',
       activo: true,
+      pago_movil_banco: '0102 - Banco de Venezuela',
+      pago_movil_telefono: '0414-1234567',
+      pago_movil_cedula_rif: 'J-12345678-9',
+      pago_movil_titular: 'TermiBus C.A.',
     });
 
     const terminalSur = await manager.save(Terminal, {
@@ -160,6 +164,10 @@ export class SeedService implements OnModuleInit {
       direccion: 'Av. Libertador, Sector Terminal Sur',
       ciudad: 'Caracas',
       activo: true,
+      pago_movil_banco: '0105 - Mercantil',
+      pago_movil_telefono: '0424-7654321',
+      pago_movil_cedula_rif: 'J-98765432-1',
+      pago_movil_titular: 'TermiBus C.A.',
     });
 
     // ── 5. Users ─────────────────────────────────────────────────
@@ -448,6 +456,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Caracas - Centro',
         ruta: 'Vía autopista regional',
         duracion_estimada_min: 90,
+        tarifa: 120,
+        moneda: 'VES',
         activo: true,
       },
       {
@@ -455,6 +465,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Maracay',
         ruta: 'Vía Turmero',
         duracion_estimada_min: 120,
+        tarifa: 180,
+        moneda: 'VES',
         activo: true,
       },
       {
@@ -462,6 +474,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Valencia',
         ruta: 'Vía Maracay',
         duracion_estimada_min: 180,
+        tarifa: 260,
+        moneda: 'VES',
         activo: true,
       },
       {
@@ -469,6 +483,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Barquisimeto',
         ruta: 'Vía Yaracuy',
         duracion_estimada_min: 300,
+        tarifa: 400,
+        moneda: 'VES',
         activo: true,
       },
       {
@@ -476,6 +492,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Puerto La Cruz',
         ruta: 'Vía Barcelona',
         duracion_estimada_min: 360,
+        tarifa: 480,
+        moneda: 'VES',
         activo: true,
       },
       {
@@ -483,6 +501,8 @@ export class SeedService implements OnModuleInit {
         nombre: 'Maracaibo',
         ruta: 'Vía Coro',
         duracion_estimada_min: 540,
+        tarifa: 650,
+        moneda: 'VES',
         activo: false,
       },
     ]);
@@ -528,10 +548,7 @@ export class SeedService implements OnModuleInit {
             : numero === 8
               ? 'Andén auxiliar'
               : `Andén ${numero}`,
-        estado:
-          numero === 7
-            ? EstadoAnden.FUERA_SERVICIO
-            : EstadoAnden.LIBRE,
+        estado: numero === 7 ? EstadoAnden.FUERA_SERVICIO : EstadoAnden.LIBRE,
       })),
     );
 
@@ -646,7 +663,11 @@ export class SeedService implements OnModuleInit {
         { plan_id: proPlan.id, recurso: PlanResource.TERMINALES, limite: 5 },
         { plan_id: proPlan.id, recurso: PlanResource.USUARIOS, limite: 25 },
         { plan_id: proPlan.id, recurso: PlanResource.ANDENES, limite: 30 },
-        { plan_id: proPlan.id, recurso: PlanResource.DESPACHOS_MES, limite: 5000 },
+        {
+          plan_id: proPlan.id,
+          recurso: PlanResource.DESPACHOS_MES,
+          limite: 5000,
+        },
         { plan_id: proPlan.id, recurso: PlanResource.LINEAS, limite: 20 },
         { plan_id: proPlan.id, recurso: PlanResource.UNIDADES, limite: 50 },
       ]);
@@ -669,9 +690,7 @@ export class SeedService implements OnModuleInit {
       periodo: BillingPeriod.MONTHLY,
       trial_ends_at: null,
       current_period_start: new Date(),
-      current_period_end: new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000,
-      ),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
 
     // Asigna el super_admin como OWNER de la segunda org (dual-role).

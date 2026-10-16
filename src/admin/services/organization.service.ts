@@ -14,7 +14,11 @@ import { OrganizationMember } from '../../entities/auth/organization-member.enti
 import { Invitation } from '../../entities/auth/invitation.entity';
 import { User } from '../../entities/auth/user.entity';
 import { Subscription } from '../../entities/billing/subscription.entity';
-import { OrganizationRole, InvitationStatus, PlanResource } from '../../common/enums';
+import {
+  OrganizationRole,
+  InvitationStatus,
+  PlanResource,
+} from '../../common/enums';
 import { PlatformAuditLogService } from '../../common/audit/platform-audit-log.service';
 import { MetricsService } from '../../common/metrics/metrics.service';
 import { TrackMetric } from '../../common/metrics/track-metric.decorator';
@@ -78,13 +82,21 @@ export class OrganizationService {
     if (!member) throw new NotFoundException('Miembro no encontrado');
 
     // Un OWNER no puede ser degradado por otro miembro
-    if (member.rol === OrganizationRole.OWNER && requestingUserRole !== OrganizationRole.OWNER) {
+    if (
+      member.rol === OrganizationRole.OWNER &&
+      requestingUserRole !== OrganizationRole.OWNER
+    ) {
       throw new ForbiddenException('No puedes cambiar el rol del propietario');
     }
 
     // Solo OWNER puede crear otros OWNER
-    if (newRole === OrganizationRole.OWNER && requestingUserRole !== OrganizationRole.OWNER) {
-      throw new ForbiddenException('Solo el propietario puede asignar rol OWNER');
+    if (
+      newRole === OrganizationRole.OWNER &&
+      requestingUserRole !== OrganizationRole.OWNER
+    ) {
+      throw new ForbiddenException(
+        'Solo el propietario puede asignar rol OWNER',
+      );
     }
 
     member.rol = newRole;
@@ -101,7 +113,11 @@ export class OrganizationService {
   }
 
   @TrackMetric('org.members.deactivate')
-  async deactivateMember(orgId: string, memberId: string, requestingUserRole: OrganizationRole) {
+  async deactivateMember(
+    orgId: string,
+    memberId: string,
+    requestingUserRole: OrganizationRole,
+  ) {
     const member = await this.memberRepo.findOne({
       where: { id: memberId, organization_id: orgId, activo: true },
     });
@@ -109,7 +125,9 @@ export class OrganizationService {
 
     // No permitir desactivar al OWNER
     if (member.rol === OrganizationRole.OWNER) {
-      throw new ForbiddenException('No puedes desactivar al propietario de la organización');
+      throw new ForbiddenException(
+        'No puedes desactivar al propietario de la organización',
+      );
     }
 
     member.activo = false;
@@ -138,14 +156,24 @@ export class OrganizationService {
       const isMember = await this.memberRepo.findOne({
         where: { user_id: user.id, organization_id: orgId, activo: true },
       });
-      if (isMember) throw new ConflictException('El usuario ya es miembro de esta organización');
+      if (isMember)
+        throw new ConflictException(
+          'El usuario ya es miembro de esta organización',
+        );
     }
 
     // Verificar invitación pendiente existente
     const pending = await this.invitationRepo.findOne({
-      where: { organization_id: orgId, email: data.email, estado: InvitationStatus.PENDING },
+      where: {
+        organization_id: orgId,
+        email: data.email,
+        estado: InvitationStatus.PENDING,
+      },
     });
-    if (pending) throw new ConflictException('Ya existe una invitación pendiente para este email');
+    if (pending)
+      throw new ConflictException(
+        'Ya existe una invitación pendiente para este email',
+      );
 
     const token = crypto.randomBytes(32).toString('hex');
     const invitation = this.invitationRepo.create({
@@ -203,7 +231,10 @@ export class OrganizationService {
       resource_id: invitationId,
     });
 
-    return { success: true, data: { id: invitationId, estado: InvitationStatus.REVOKED } };
+    return {
+      success: true,
+      data: { id: invitationId, estado: InvitationStatus.REVOKED },
+    };
   }
 
   // === TERMINALES ===
@@ -220,7 +251,16 @@ export class OrganizationService {
   @TrackMetric('org.terminals.create')
   async createTerminal(
     orgId: string,
-    data: { nombre: string; slug: string; direccion: string; ciudad: string },
+    data: {
+      nombre: string;
+      slug: string;
+      direccion: string;
+      ciudad: string;
+      pago_movil_banco?: string;
+      pago_movil_telefono?: string;
+      pago_movil_cedula_rif?: string;
+      pago_movil_titular?: string;
+    },
   ) {
     // Validar límite de terminales según plan
     const sub = await this.subscriptionRepo.findOne({
@@ -259,6 +299,10 @@ export class OrganizationService {
       slug: data.slug,
       direccion: data.direccion,
       ciudad: data.ciudad,
+      pago_movil_banco: data.pago_movil_banco ?? null,
+      pago_movil_telefono: data.pago_movil_telefono ?? null,
+      pago_movil_cedula_rif: data.pago_movil_cedula_rif ?? null,
+      pago_movil_titular: data.pago_movil_titular ?? null,
     });
     const saved = await this.terminalRepo.save(terminal);
 
@@ -281,6 +325,10 @@ export class OrganizationService {
       slug?: string;
       direccion?: string;
       ciudad?: string;
+      pago_movil_banco?: string;
+      pago_movil_telefono?: string;
+      pago_movil_cedula_rif?: string;
+      pago_movil_titular?: string;
     },
   ) {
     const terminal = await this.terminalRepo.findOne({
@@ -299,7 +347,7 @@ export class OrganizationService {
         );
     }
 
-    await this.terminalRepo.update(terminalId, data as never);
+    await this.terminalRepo.update(terminalId, data);
     const updated = await this.terminalRepo.findOne({
       where: { id: terminalId },
     });

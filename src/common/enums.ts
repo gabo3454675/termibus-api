@@ -94,3 +94,26 @@ export enum EstadoAbordaje {
   ABORDADO = 'ABORDADO',
   CANCELADO = 'CANCELADO',
 }
+
+/** Cómo se originó el registro de abordaje */
+export enum OrigenAbordaje {
+  /** El pasajero mostró su QR (identificado) */
+  QR = 'QR',
+  /** El cobrador registró el abordaje manualmente (sin app o sin identidad) */
+  MANUAL = 'MANUAL',
+}
+
+/** Método de pago del pasaje — el cobro ocurre al abordar */
+export enum MetodoPago {
+  EFECTIVO = 'EFECTIVO',
+  PAGO_MOVIL = 'PAGO_MOVIL',
+  PUNTO_DE_VENTA = 'PUNTO_DE_VENTA',
+  TRANSFERENCIA = 'TRANSFERENCIA',
+  EXONERADO = 'EXONERADO',
+}
+
+export enum EstadoPago {
+  PENDIENTE = 'PENDIENTE',
+  PAGADO = 'PAGADO',
+  ANULADO = 'ANULADO',
+}

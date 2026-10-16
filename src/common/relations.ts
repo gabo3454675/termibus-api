@@ -7,6 +7,7 @@ export const DESPACHO_RELATIONS: FindOptionsRelations<Despacho> = {
   conductor: true,
   anden: true,
   destino: true,
+  terminal: true,
 };
 
 export const UNIDAD_LINEA_REL: FindOptionsRelations<Unidad> = {

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateTerminalDto {
   @IsString()
@@ -16,6 +16,26 @@ export class CreateTerminalDto {
   @IsString()
   @IsNotEmpty()
   ciudad: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  pago_movil_banco?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  pago_movil_telefono?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  pago_movil_cedula_rif?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  pago_movil_titular?: string;
 }
 
 export class UpdateTerminalDto {
@@ -34,4 +54,24 @@ export class UpdateTerminalDto {
   @IsString()
   @IsOptional()
   ciudad?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  pago_movil_banco?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  pago_movil_telefono?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  pago_movil_cedula_rif?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  pago_movil_titular?: string;
 }

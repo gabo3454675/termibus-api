@@ -24,6 +24,13 @@ export class Destino {
   @Column({ type: 'int', default: 60 })
   duracion_estimada_min: number;
 
+  /** Tarifa del pasaje por defecto para este destino */
+  @Column({ type: 'float', default: 0 })
+  tarifa: number;
+
+  @Column({ type: 'varchar', default: 'VES' })
+  moneda: string;
+
   @Column({ default: true })
   activo: boolean;
 
